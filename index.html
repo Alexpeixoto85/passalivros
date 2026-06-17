@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PassaLivro — livros que passam de mão em mão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F2E9;
+    --surface:#FFFFFF;
+    --surface-2:#FBF8F1;
+    --ink:#173F3B;
+    --ink-soft:#46615C;
+    --line:#E7DFCE;
+    --line-strong:#D8CDB4;
+    --marigold:#DD942F;
+    --marigold-soft:#F7E6C6;
+    --trade:#2F8F6B;
+    --trade-soft:#DBEFE4;
+    --doa:#7A5AA6;
+    --doa-soft:#EAE2F4;
+    --wa:#1FA855;
+    --wa-press:#178a45;
+    --danger:#BE4527;
+    --danger-soft:#F6E0D8;
+    --text:#1A2421;
+    --shadow:0 1px 2px rgba(23,63,59,.06),0 8px 24px rgba(23,63,59,.07);
+    --shadow-lg:0 12px 40px rgba(23,63,59,.18);
+    --r:16px;
+    --r-sm:11px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--paper);color:var(--text);
+    font-family:"DM Sans",system-ui,sans-serif;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:600;line-height:1.1;margin:0;color:var(--ink)}
+  button{font-family:inherit;cursor:pointer}
+  a{color:inherit}
+  :focus-visible{outline:3px solid var(--marigold);outline-offset:2px;border-radius:6px}
+
+  /* ---------- header ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:40;background:rgba(246,242,233,.86);
+    backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:1140px;margin:0 auto;padding:14px 20px;
+    display:flex;align-items:center;gap:16px;
+  }
+  .brand{display:flex;align-items:center;gap:11px;text-decoration:none;margin-right:auto}
+  .mark{
+    width:40px;height:40px;border-radius:11px;background:var(--ink);
+    display:grid;place-items:center;flex:none;box-shadow:var(--shadow);
+    position:relative;overflow:hidden;
+  }
+  .mark svg{width:23px;height:23px}
+  .brand-name{font-family:"Fraunces",serif;font-weight:600;font-size:21px;color:var(--ink);letter-spacing:-.2px}
+  .brand-name b{color:var(--marigold);font-weight:600}
+  .brand-tag{display:block;font-family:"DM Sans";font-size:11px;color:var(--ink-soft);font-weight:500;letter-spacing:.2px;margin-top:-2px}
+
+  .btn{
+    border:1px solid transparent;border-radius:11px;padding:11px 18px;
+    font-size:14.5px;font-weight:600;display:inline-flex;align-items:center;
+    gap:8px;text-decoration:none;white-space:nowrap;transition:transform .08s,box-shadow .15s,background .15s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--ink);color:#fff;box-shadow:var(--shadow)}
+  .btn-primary:hover{background:#10302d}
+  .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+  .btn-ghost:hover{background:var(--surface-2)}
+  .btn-ghost.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn svg{width:17px;height:17px;flex:none}
+  .nav-actions{display:flex;align-items:center;gap:10px}
+  .icon-only{display:none}
+
+  /* ---------- hero ---------- */
+  .hero{max-width:1140px;margin:0 auto;padding:40px 20px 8px}
+  .hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--ink-soft);
+    background:var(--marigold-soft);padding:6px 12px;border-radius:30px;margin-bottom:18px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--marigold)}
+  .hero h1{font-size:clamp(33px,5.2vw,52px);letter-spacing:-1px;font-weight:600}
+  .hero h1 em{font-style:italic;color:var(--marigold)}
+  .hero p.lead{font-size:17px;color:var(--ink-soft);max-width:30em;margin:18px 0 26px}
+  .hero-cta{display:flex;gap:12px;flex-wrap:wrap}
+  .stats{display:flex;gap:26px;margin-top:30px}
+  .stat .n{font-family:"Fraunces",serif;font-size:27px;font-weight:600;color:var(--ink)}
+  .stat .l{font-size:12.5px;color:var(--ink-soft);font-weight:500}
+
+  /* stacked book illustration */
+  .hero-art{position:relative;height:300px}
+  .bk{position:absolute;border-radius:5px 9px 9px 5px;box-shadow:var(--shadow-lg);
+      border-left:9px solid rgba(0,0,0,.16);display:flex;flex-direction:column;justify-content:flex-end;padding:18px 16px;color:#fff}
+  .bk .bt{font-family:"Fraunces",serif;font-weight:600;font-size:17px;line-height:1.15}
+  .bk .ba{font-size:11.5px;opacity:.85;margin-top:4px}
+  .bk1{width:178px;height:236px;left:28%;top:10px;transform:rotate(-7deg);background:linear-gradient(150deg,#1d5450,#173F3B)}
+  .bk2{width:172px;height:226px;left:40%;top:46px;transform:rotate(5deg);background:linear-gradient(150deg,#e6a443,#cf7f25)}
+  .bk3{width:160px;height:210px;left:10%;top:84px;transform:rotate(-2deg);background:linear-gradient(150deg,#358a6c,#256f54)}
+  .bk-tape{position:absolute;width:74px;height:22px;background:rgba(255,255,255,.34);top:-9px;left:50%;transform:translateX(-50%) rotate(-3deg);border-radius:2px}
+
+  /* ---------- toolbar / filters ---------- */
+  .controls{max-width:1140px;margin:0 auto;padding:26px 20px 0;scroll-margin-top:80px}
+  .search-row{display:flex;gap:12px;flex-wrap:wrap}
+  .search{flex:1;min-width:240px;position:relative}
+  .search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:19px;height:19px;color:var(--ink-soft)}
+  .search input{
+    width:100%;padding:14px 16px 14px 44px;border-radius:13px;border:1px solid var(--line-strong);
+    background:var(--surface);font-size:15px;font-family:inherit;color:var(--text);box-shadow:var(--shadow)}
+  .search input::placeholder{color:#9aa6a1}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .sel{position:relative}
+  select,.price-in{
+    appearance:none;border:1px solid var(--line-strong);background:var(--surface);
+    border-radius:11px;padding:10px 34px 10px 14px;font-family:inherit;font-size:13.5px;
+    font-weight:500;color:var(--ink);cursor:pointer}
+  .sel::after{content:"";position:absolute;right:13px;top:50%;width:8px;height:8px;border-right:2px solid var(--ink-soft);
+    border-bottom:2px solid var(--ink-soft);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  .price-in{width:118px;padding-right:14px;cursor:text}
+  .filters .clearf{margin-left:auto;background:none;border:none;color:var(--ink-soft);font-weight:600;font-size:13.5px;padding:8px;display:none}
+  .filters .clearf.show{display:inline-block}
+  .resultline{max-width:1140px;margin:0 auto;padding:20px 20px 0;font-size:14px;color:var(--ink-soft);display:flex;align-items:baseline;gap:8px}
+  .resultline b{color:var(--ink);font-weight:700}
+
+  /* ---------- grid / cards ---------- */
+  .grid{max-width:1140px;margin:0 auto;padding:16px 20px 70px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:22px}
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;
+    transition:transform .14s,box-shadow .14s;cursor:pointer}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+  .cover{position:relative;aspect-ratio:5/4;overflow:hidden;background:var(--surface-2)}
+  .cover img{width:100%;height:100%;object-fit:cover;display:block}
+  .cover-gen{width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:16px;color:#fff;position:relative}
+  .cover-gen::before{content:"";position:absolute;left:0;top:0;bottom:0;width:11px;background:rgba(0,0,0,.18)}
+  .cover-gen .cg-t{font-family:"Fraunces",serif;font-weight:600;font-size:18px;line-height:1.12;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .cover-gen .cg-a{font-size:11.5px;opacity:.86;margin-top:5px}
+  .cover-gen .cg-ico{position:absolute;top:14px;right:14px;opacity:.5}
+  .badge{position:absolute;top:11px;left:11px;font-size:11.5px;font-weight:700;
+    padding:5px 11px;border-radius:30px;letter-spacing:.2px;backdrop-filter:blur(4px)}
+  .badge.venda{background:#fff;color:var(--ink)}
+  .badge.troca{background:var(--trade);color:#fff}
+  .badge.doacao{background:var(--doa);color:#fff}
+  .photocount{position:absolute;bottom:11px;right:11px;background:rgba(20,40,37,.7);color:#fff;
+    font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:5px}
+  .photocount svg{width:13px;height:13px}
+  .card-body{padding:15px 16px 0;flex:1}
+  .card-body h3{font-size:17.5px;letter-spacing:-.2px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card-author{font-size:13px;color:var(--ink-soft);margin-top:3px}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .chip{font-size:11.5px;font-weight:600;background:var(--surface-2);border:1px solid var(--line);
+    color:var(--ink-soft);padding:4px 9px;border-radius:8px}
+  .card-foot{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+  .price{font-family:"Fraunces",serif;font-weight:600;font-size:21px;color:var(--ink)}
+  .price small{font-size:12px;font-weight:500;color:var(--ink-soft);font-family:"DM Sans"}
+  .price.troca{color:var(--trade);font-size:16px}
+  .price.doacao{color:var(--doa);font-size:16px}
+  .wa-btn{background:var(--wa);color:#fff;border:none;border-radius:10px;padding:10px 13px;
+    font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:7px;flex:none}
+  .wa-btn:hover{background:var(--wa-press)}
+  .wa-btn svg{width:16px;height:16px}
+
+  /* owner tag */
+  .owner-row{display:flex;gap:8px;padding:0 16px 4px}
+  .owner-actions{display:flex;gap:8px;width:100%}
+  .mini{flex:1;border:1px solid var(--line-strong);background:var(--surface);border-radius:9px;
+    padding:8px;font-weight:600;font-size:12.5px;color:var(--ink-soft);display:inline-flex;
+    align-items:center;justify-content:center;gap:6px}
+  .mini.del:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-soft)}
+  .mini.edit:hover{border-color:var(--ink);color:var(--ink)}
+  .mini svg{width:14px;height:14px}
+
+  /* empty / states */
+  .state{max-width:560px;margin:30px auto 80px;text-align:center;padding:50px 24px;
+    background:var(--surface);border:1px dashed var(--line-strong);border-radius:22px}
+  .state .ico{width:64px;height:64px;border-radius:18px;background:var(--marigold-soft);
+    display:grid;place-items:center;margin:0 auto 18px}
+  .state .ico svg{width:30px;height:30px;color:var(--marigold)}
+  .state h2{font-size:24px;margin-bottom:8px}
+  .state p{color:var(--ink-soft);margin:0 auto 22px;max-width:34em}
+
+  /* ---------- modal ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(16,32,30,.5);backdrop-filter:blur(3px);
+    z-index:60;display:none;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
+  .scrim.open{display:flex}
+  .modal{background:var(--paper);border-radius:24px;width:100%;max-width:620px;margin:auto;
+    box-shadow:var(--shadow-lg);overflow:hidden;animation:pop .2s ease}
+  .modal.wide{max-width:760px}
+  @keyframes pop{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:22px 26px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:2}
+  .modal-head h2{font-size:23px}
+  .xclose{width:38px;height:38px;border-radius:11px;border:1px solid var(--line-strong);background:var(--surface);
+    display:grid;place-items:center;color:var(--ink)}
+  .xclose:hover{background:var(--surface-2)}
+  .xclose svg{width:18px;height:18px}
+  .modal-body{padding:24px 26px}
+
+  /* form */
+  .field{margin-bottom:17px}
+  .field.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  label.lab{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:7px}
+  label.lab .opt{font-weight:500;color:var(--ink-soft)}
+  .inp{width:100%;padding:12px 14px;border-radius:11px;border:1px solid var(--line-strong);
+    background:var(--surface);font-family:inherit;font-size:15px;color:var(--text)}
+  textarea.inp{resize:vertical;min-height:84px}
+  .inp:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px rgba(23,63,59,.1)}
+  .seg{display:flex;gap:8px}
+  .seg label{flex:1}
+  .seg input{position:absolute;opacity:0;pointer-events:none}
+  .seg .opt-b{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 6px;border:1px solid var(--line-strong);
+    border-radius:12px;background:var(--surface);font-weight:600;font-size:13.5px;text-align:center;color:var(--ink-soft)}
+  .seg .opt-b small{font-weight:500;font-size:11px}
+  .seg input:checked + .opt-b{border-color:var(--ink);background:var(--ink);color:#fff;box-shadow:var(--shadow)}
+  .seg input:focus-visible + .opt-b{outline:3px solid var(--marigold);outline-offset:2px}
+
+  /* photo uploader */
+  .drop{border:2px dashed var(--line-strong);border-radius:14px;padding:20px;text-align:center;
+    background:var(--surface);color:var(--ink-soft);cursor:pointer;transition:.15s}
+  .drop:hover{border-color:var(--marigold);background:var(--surface-2)}
+  .drop svg{width:26px;height:26px;color:var(--marigold);margin-bottom:6px}
+  .drop b{color:var(--ink)}
+  .drop .hint{font-size:12px;margin-top:3px}
+  .thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .thumb{position:relative;width:74px;height:74px;border-radius:11px;overflow:hidden;border:1px solid var(--line)}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;
+    background:rgba(20,40,37,.78);color:#fff;border:none;display:grid;place-items:center;font-size:13px;line-height:1}
+  .form-foot{display:flex;gap:12px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--line);margin-top:6px}
+  .form-foot .btn{padding:13px 22px}
+  .help-txt{font-size:12px;color:var(--ink-soft);margin-top:6px}
+  .err{color:var(--danger);font-size:12.5px;margin-top:6px;font-weight:600;display:none}
+  .err.show{display:block}
+
+  /* detail modal */
+  .detail-gallery{aspect-ratio:16/10;background:var(--surface-2);border-radius:16px;overflow:hidden;position:relative;margin-bottom:18px}
+  .detail-gallery img{width:100%;height:100%;object-fit:cover}
+  .gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;
+    background:rgba(255,255,255,.9);border:none;display:grid;place-items:center;box-shadow:var(--shadow)}
+  .gal-nav.prev{left:12px}.gal-nav.next{right:12px}
+  .gal-dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px}
+  .gal-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.55)}
+  .gal-dots i.on{background:#fff}
+  .detail-price{font-family:"Fraunces",serif;font-weight:600;font-size:30px;color:var(--ink);margin-bottom:4px}
+  .detail-meta{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+  .dl{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;margin:18px 0;font-size:14.5px}
+  .dl dt{color:var(--ink-soft);font-weight:600}
+  .dl dd{margin:0;color:var(--text)}
+  .detail-desc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;color:var(--text);white-space:pre-wrap;font-size:14.5px}
+  .detail-wa{width:100%;justify-content:center;font-size:16px;padding:15px;margin-top:18px}
+
+  /* toast */
+  .toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:10px;width:calc(100% - 32px);max-width:420px}
+  .toast{background:var(--ink);color:#fff;padding:14px 18px;border-radius:13px;box-shadow:var(--shadow-lg);
+    display:flex;align-items:center;gap:11px;font-size:14px;font-weight:500;animation:slide .25s ease}
+  .toast.ok{background:var(--trade)}.toast.bad{background:var(--danger)}
+  .toast svg{width:19px;height:19px;flex:none}
+  @keyframes slide{from{transform:translateY(18px);opacity:0}to{transform:none;opacity:1}}
+
+  /* setup banner */
+  .setup{max-width:760px;margin:30px auto 60px;background:var(--surface);border:1px solid var(--line-strong);
+    border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}
+  .setup-top{background:var(--ink);color:#fff;padding:26px 28px}
+  .setup-top h2{color:#fff;font-size:24px}
+  .setup-top p{margin:8px 0 0;opacity:.85;font-size:14.5px}
+  .setup-body{padding:26px 28px}
+  .setup-body ol{margin:0;padding-left:22px}
+  .setup-body li{margin-bottom:14px;font-size:14.5px}
+  .setup-body code,.setup-body pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+  .setup-body pre{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;margin:10px 0 0}
+  .setup-body a{color:var(--marigold);font-weight:600}
+  .pill{display:inline-block;background:var(--marigold-soft);color:#9a6512;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px}
+
+  .footer{border-top:1px solid var(--line);padding:30px 20px;text-align:center;color:var(--ink-soft);font-size:13px}
+  .footer b{color:var(--ink)}
+  .hide{display:none!important}
+  .cloud-dot{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);font-weight:600}
+  .cloud-dot i{width:8px;height:8px;border-radius:50%;background:var(--trade);box-shadow:0 0 0 3px var(--trade-soft)}
+
+  @media(max-width:860px){
+    .hero-grid{grid-template-columns:1fr;gap:8px}
+    .hero-art{display:none}
+    .hero{padding-top:30px}
+  }
+  @media(max-width:560px){
+    .brand-tag{display:none}
+    .nav-actions .btn span.lbl{display:none}
+    .nav-actions .btn{padding:11px}
+    .icon-only{display:inline-flex}
+    .stats{gap:18px;flex-wrap:wrap}
+    .field.row2,.field.row3{grid-template-columns:1fr}
+    .modal-body{padding:20px}
+    .grid{gap:16px}
+    .dl{grid-template-columns:1fr}
+    .dl dt{margin-top:6px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#" onclick="App.goHome();return false;">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 4.5C3 4.5 6 3.2 9 4.2C11 4.9 12 6 12 6V20C12 20 11 18.9 9 18.2C6 17.2 3 18.5 3 18.5V4.5Z" fill="#DD942F"/><path d="M21 4.5C21 4.5 18 3.2 15 4.2C13 4.9 12 6 12 6V20C12 20 13 18.9 15 18.2C18 17.2 21 18.5 21 18.5V4.5Z" fill="#fff"/></svg>
+      </span>
+      <span>
+        <span class="brand-name">Passa<b>Livro</b></span>
+        <span class="brand-tag">livros de mão em mão entre as famílias</span>
+      </span>
+    </a>
+    <div class="nav-actions">
+      <span class="cloud-dot" id="cloudDot" title="Conectado à nuvem"><i></i>na nuvem</span>
+      <button class="btn btn-ghost" id="mineBtn" onclick="App.toggleMine()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="lbl">Meus anúncios</span>
+      </button>
+      <button class="btn btn-primary" onclick="App.openForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="lbl">Anunciar livro</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- SETUP (mostrado só quando o Firebase não está configurado) -->
+<section class="setup hide" id="setupCard">
+  <div class="setup-top">
+    <h2>Falta um passo: conectar ao Firebase</h2>
+    <p>Seus anúncios serão salvos na nuvem para que todas as famílias vejam. Leva ~3 minutos e é gratuito.</p>
+  </div>
+  <div class="setup-body">
+    <ol>
+      <li>Acesse o <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console do Firebase</a> e clique em <b>Adicionar projeto</b>.</li>
+      <li>No menu lateral, abra <b>Build → Firestore Database</b> e clique em <b>Criar banco de dados</b> (pode iniciar no modo de teste).</li>
+      <li>Abra <b>Build → Authentication → Sign-in method</b> e ative o provedor <b>Anônimo</b>.</li>
+      <li>Em <b>Configurações do projeto ⚙️ → Seus apps</b>, registre um app <b>Web</b> e copie o objeto <code>firebaseConfig</code>.</li>
+      <li>Cole esse objeto neste arquivo, dentro do bloco marcado <span class="pill">COLE AQUI</span>, salve e recarregue a página.</li>
+    </ol>
+    <p style="margin:18px 0 6px;font-weight:600;color:var(--ink)">Regras de segurança recomendadas (cole em Firestore → Regras):</p>
+    <pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /livros/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    &amp;&amp; request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null
+                    &amp;&amp; resource.data.ownerId == request.auth.uid;
+    }
+  }
+}</pre>
+  </div>
+</section>
+
+<!-- HERO -->
+<section class="hero" id="heroSection">
+  <div class="hero-grid">
+    <div>
+      <span class="eyebrow"><span class="dot"></span>Fim de ano letivo • economize na lista</span>
+      <h1>O livro do seu filho pode ser <em>a economia</em> de outra família.</h1>
+      <p class="lead">Anuncie os livros que sua casa não usa mais e encontre os da lista do próximo ano. Combina tudo direto no WhatsApp, sem intermediário.</p>
+      <div class="hero-cta">
+        <button class="btn btn-primary" onclick="App.openForm()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+          Anunciar um livro
+        </button>
+        <button class="btn btn-ghost" onclick="App.scrollToList()">Ver livros disponíveis</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="n" id="statBooks">0</div><div class="l">livros à disposição</div></div>
+        <div class="stat"><div class="n" id="statTroca">0</div><div class="l">abertos a troca</div></div>
+        <div class="stat"><div class="n" id="statDoa">0</div><div class="l">para doação</div></div>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <div class="bk bk3"><div class="bt">Ciências</div><div class="ba">9º ano</div></div>
+      <div class="bk bk1"><div class="bt">Matemática</div><div class="ba">Ensino Fundamental</div></div>
+      <div class="bk bk2"><span class="bk-tape"></span><div class="bt">Português</div><div class="ba">1ª série</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTROLS -->
+<section class="controls" id="listTop">
+  <div class="search-row">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" type="search" placeholder="Buscar por título, autor, disciplina ou editora…" oninput="App.render()">
+    </div>
+  </div>
+  <div class="filters">
+    <div class="sel"><select id="fDisc" onchange="App.render()"><option value="">Todas as disciplinas</option></select></div>
+    <div class="sel"><select id="fSerie" onchange="App.render()"><option value="">Todas as séries</option></select></div>
+    <div class="sel"><select id="fTipo" onchange="App.render()">
+      <option value="">Venda, troca e doação</option>
+      <option value="venda">À venda</option>
+      <option value="troca">Para troca</option>
+      <option value="doacao">Doação</option>
+    </select></div>
+    <div class="sel"><select id="fEstado" onchange="App.render()">
+      <option value="">Qualquer estado</option>
+      <option>Novo</option><option>Seminovo</option><option>Usado em bom estado</option><option>Bastante usado</option>
+    </select></div>
+    <div class="sel"><select id="fSort" onchange="App.render()">
+      <option value="recent">Mais recentes</option>
+      <option value="priceA">Menor preço</option>
+      <option value="priceD">Maior preço</option>
+    </select></div>
+    <button class="clearf" id="clearF" onclick="App.clearFilters()">Limpar filtros</button>
+  </div>
+</section>
+
+<div class="resultline" id="resultLine"></div>
+<main class="grid" id="grid"></main>
+
+<!-- estados -->
+<section class="state hide" id="emptyState">
+  <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+  <h2 id="emptyTitle">Ainda não há livros por aqui</h2>
+  <p id="emptyText">Seja a primeira família a anunciar. Cadastre um livro que você não usa mais e ajude alguém da escola.</p>
+  <button class="btn btn-primary" onclick="App.openForm()">Anunciar o primeiro livro</button>
+</section>
+
+<section class="state hide" id="loadingState">
+  <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg></div>
+  <h2>Carregando os livros…</h2>
+  <p>Buscando os anúncios na nuvem.</p>
+</section>
+
+<footer class="footer">
+  <b>PassaLivro</b> — feito para a comunidade escolar. Os negócios são combinados diretamente entre as famílias pelo WhatsApp.
+</footer>
+
+<!-- =============== MODAL: FORM =============== -->
+<div class="scrim" id="formScrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+    <div class="modal-head">
+      <h2 id="formTitle">Anunciar um livro</h2>
+      <button class="xclose" onclick="App.closeForm()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <form id="bookForm" onsubmit="App.saveBook(event)">
+        <input type="hidden" id="editId">
+
+        <div class="field">
+          <label class="lab" for="titulo">Título do livro</label>
+          <input class="inp" id="titulo" placeholder="Ex.: Matemática — Bianchini, 8º ano" required>
+        </div>
+
+        <div class="field row2">
+          <div>
+            <label class="lab" for="autor">Autor <span class="opt">(opcional)</span></label>
+            <input class="inp" id="autor" placeholder="Ex.: Edwaldo Bianchini">
+          </div>
+          <div>
+            <label class="lab" for="editora">Editora <span class="opt">(opcional)</span></label>
+            <input class="inp" id="editora" placeholder="Ex.: Moderna">
+          </div>
+        </div>
+
+        <div class="field row3">
+          <div>
+            <label class="lab" for="disciplina">Disciplina</label>
+            <input class="inp" id="disciplina" list="discList" placeholder="Ex.: Matemática" required>
+            <datalist id="discList">
+              <option>Português</option><option>Matemática</option><option>História</option>
+              <option>Geografia</option><option>Ciências</option><option>Biologia</option>
+              <option>Física</option><option>Química</option><option>Inglês</option>
+              <option>Espanhol</option><option>Artes</option><option>Filosofia</option>
+              <option>Sociologia</option><option>Literatura</option><option>Redação</option>
+              <option>Apostila / Material integrado</option><option>Paradidático</option>
+            </datalist>
+          </div>
+          <div>
+            <label class="lab" for="serie">Série / Ano</label>
+            <input class="inp" id="serie" list="serieList" placeholder="Ex.: 8º ano" required>
+            <datalist id="serieList">
+              <option>Educação Infantil</option><option>1º ano</option><option>2º ano</option>
+              <option>3º ano</option><option>4º ano</option><option>5º ano</option><option>6º ano</option>
+              <option>7º ano</option><option>8º ano</option><option>9º ano</option>
+              <option>1ª série EM</option><option>2ª série EM</option><option>3ª série EM</option>
+              <option>Pré-vestibular</option>
+            </datalist>
+          </div>
+          <div>
+            <label class="lab" for="edicao">Edição / Ano <span class="opt">(opcional)</span></label>
+            <input class="inp" id="edicao" placeholder="Ex.: 9ª ed.">
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="lab">Estado de conservação</label>
+          <div class="seg" id="estadoSeg">
+            <label><input type="radio" name="estado" value="Novo"><span class="opt-b">Novo<small>lacrado/sem uso</small></span></label>
+            <label><input type="radio" name="estado" value="Seminovo" checked><span class="opt-b">Seminovo<small>pouco uso</small></span></label>
+            <label><input type="radio" name="estado" value="Usado em bom estado"><span class="opt-b">Usado<small>bom estado</small></span></label>
+            <label><input type="radio" name="estado" value="Bastante usado"><span class="opt-b">Marcado<small>bem usado</small></span></label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="lab">Tipo de negócio</label>
+          <div class="seg" id="tipoSeg">
+            <label><input type="radio" name="tipo" value="venda" checked onchange="App.onTipo()"><span class="opt-b">À venda<small>tem preço</small></span></label>
+            <label><input type="radio" name="tipo" value="troca" onchange="App.onTipo()"><span class="opt-b">Troca<small>por outro livro</small></span></label>
+            <label><input type="radio" name="tipo" value="doacao" onchange="App.onTipo()"><span class="opt-b">Doação<small>de graça</small></span></label>
+          </div>
+        </div>
+
+        <div class="field" id="precoField">
+          <label class="lab" for="preco">Preço (R$)</label>
+          <input class="inp" id="preco" type="number" min="0" step="0.50" placeholder="Ex.: 45,00">
+        </div>
+        <div class="field hide" id="trocaField">
+          <label class="lab" for="trocaPor">O que você aceita em troca?</label>
+          <input class="inp" id="trocaPor" placeholder="Ex.: Livro de Ciências do 9º ano">
+        </div>
+
+        <div class="field">
+          <label class="lab" for="descricao">Descrição <span class="opt">(opcional)</span></label>
+          <textarea class="inp" id="descricao" placeholder="Conte sobre marcações, capa, se acompanha adesivos/CD, motivo da venda…"></textarea>
+        </div>
+
+        <div class="field">
+          <label class="lab">Fotos <span class="opt">(até 4 — recomendado)</span></label>
+          <div class="drop" id="dropZone" onclick="document.getElementById('photoInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+            <div><b>Toque para adicionar fotos</b></div>
+            <div class="hint">As imagens são compactadas automaticamente</div>
+          </div>
+          <input type="file" id="photoInput" accept="image/*" multiple class="hide" onchange="App.addPhotos(event)">
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--line);margin:6px 0 18px">
+
+        <div class="field row2">
+          <div>
+            <label class="lab" for="nome">Seu nome</label>
+            <input class="inp" id="nome" placeholder="Ex.: Ana (mãe do João, 5º A)" required>
+          </div>
+          <div>
+            <label class="lab" for="whats">WhatsApp (com DDD)</label>
+            <input class="inp" id="whats" type="tel" placeholder="Ex.: (11) 99876-5432" required>
+          </div>
+        </div>
+        <div class="field">
+          <label class="lab" for="cidade">Bairro / Escola / Cidade <span class="opt">(opcional)</span></label>
+          <input class="inp" id="cidade" placeholder="Ex.: Colégio São José — Pinheiros, SP">
+        </div>
+
+        <div class="err" id="formErr"></div>
+
+        <div class="form-foot">
+          <button type="button" class="btn btn-ghost" onclick="App.closeForm()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Publicar anúncio</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =============== MODAL: DETALHE =============== -->
+<div class="scrim" id="detailScrim">
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <div class="modal-head">
+      <h2 id="dTitle">Detalhes do livro</h2>
+      <button class="xclose" onclick="App.closeDetail()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script type="module">
+/* ============================================================
+   1) CONFIGURAÇÃO DO FIREBASE
+   --- COLE AQUI ---  (substitua os valores pelo seu firebaseConfig)
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyB-vYs_Pld4DccL2TdiaIdRzFaF3aUxSSI",
+  authDomain: "passalivros.firebaseapp.com",
+  projectId: "passalivros",
+  storageBucket: "passalivros.firebasestorage.app",
+  messagingSenderId: "1070393055617",
+  appId: "1:1070393055617:web:504874c5cfef1582a07080",
+  measurementId: "G-BVG34858XJ"
+};
+/* ===================== fim da configuração ===================== */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+         onSnapshot, query, orderBy, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const isConfigured = !String(firebaseConfig.apiKey).startsWith("COLE_AQUI");
+
+let db=null, auth=null, uid=null, colRef=null;
+let BOOKS=[];           // anúncios vindos da nuvem
+let pendingPhotos=[];   // fotos do formulário (base64)
+let editingId=null;
+let showMine=false;
+let detailBook=null, galIndex=0;
+
+const $=id=>document.getElementById(id);
+const COVER_PALETTE=[
+  ["#1d5450","#173F3B"],["#e6a443","#cf7f25"],["#358a6c","#256f54"],
+  ["#3b6ea5","#2b5483"],["#a8556b","#8a3f53"],["#6b5b95","#4f4373"],
+  ["#c2703a","#a4582a"],["#4f7a8a","#3a5f6d"]
+];
+
+/* ---------------- util ---------------- */
+function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return Math.abs(h);}
+function coverFor(b){const p=COVER_PALETTE[hashStr((b.titulo||"")+(b.disciplina||""))%COVER_PALETTE.length];return p;}
+function brl(n){return Number(n).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});}
+function tipoLabel(t){return t==="venda"?"À venda":t==="troca"?"Troca":"Doação";}
+
+function normalizePhone(raw){
+  let d=String(raw||"").replace(/\D/g,"");
+  if(d.startsWith("0"))d=d.replace(/^0+/,"");
+  if(!d.startsWith("55")&&(d.length===10||d.length===11))d="55"+d;
+  return d;
+}
+function waLink(b){
+  const phone=normalizePhone(b.whatsapp);
+  const tipoTxt=b.tipo==="venda"?`(anunciado por R$ ${brl(b.preco)})`
+              :b.tipo==="troca"?"(para troca)":"(doação)";
+  const msg=`Olá! Vi seu anúncio do livro "${b.titulo}" ${tipoTxt} no PassaLivro. Ainda está disponível? 🙂`;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+}
+
+/* ---------------- toast ---------------- */
+function toast(msg,kind="",icon=""){
+  const t=document.createElement("div");
+  t.className="toast "+kind;
+  const ic=kind==="ok"?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>'
+        :kind==="bad"?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>'
+        :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>';
+  t.innerHTML=ic+"<span>"+escapeHtml(msg)+"</span>";
+  $("toasts").appendChild(t);
+  setTimeout(()=>{t.style.opacity="0";t.style.transform="translateY(10px)";setTimeout(()=>t.remove(),250);},3200);
+}
+
+/* ---------------- image compression ---------------- */
+function compress(file){
+  return new Promise((res,rej)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=900;let{width:w,height:h}=img;
+        if(w>h&&w>max){h=h*max/w;w=max;}else if(h>=w&&h>max){w=w*max/h;h=max;}
+        const c=document.createElement("canvas");c.width=w;c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        let q=0.62,out=c.toDataURL("image/jpeg",q);
+        while(out.length>140000&&q>0.35){q-=0.1;out=c.toDataURL("image/jpeg",q);}
+        res(out);
+      };
+      img.onerror=rej;img.src=e.target.result;
+    };
+    reader.onerror=rej;reader.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   App
+   ============================================================ */
+const App={
+  goHome(){showMine=false;$("mineBtn").classList.remove("active");this.scrollToTop();this.render();},
+  scrollToTop(){window.scrollTo({top:0,behavior:"smooth"});},
+  scrollToList(){$("listTop").scrollIntoView({behavior:"smooth",block:"start"});},
+
+  /* ---------- form ---------- */
+  openForm(book=null){
+    if(!isConfigured){toast("Configure o Firebase para publicar (veja o passo a passo no topo).","bad");return;}
+    editingId=book?book.id:null;
+    pendingPhotos=book?[...(book.fotos||[])]:[];
+    $("formTitle").textContent=book?"Editar anúncio":"Anunciar um livro";
+    $("saveBtn").textContent=book?"Salvar alterações":"Publicar anúncio";
+    $("editId").value=book?book.id:"";
+    $("titulo").value=book?.titulo||"";
+    $("autor").value=book?.autor||"";
+    $("editora").value=book?.editora||"";
+    $("disciplina").value=book?.disciplina||"";
+    $("serie").value=book?.serie||"";
+    $("edicao").value=book?.edicao||"";
+    $("descricao").value=book?.descricao||"";
+    $("preco").value=book?.preco??"";
+    $("trocaPor").value=book?.trocaPor||"";
+    $("nome").value=book?.nome||localStorage.getItem("pl_nome")||"";
+    $("whats").value=book?.whatsapp||localStorage.getItem("pl_whats")||"";
+    $("cidade").value=book?.cidade||localStorage.getItem("pl_cidade")||"";
+    (document.querySelector(`#estadoSeg input[value="${book?.estado||'Seminovo'}"]`)||{}).checked=true;
+    (document.querySelector(`#tipoSeg input[value="${book?.tipo||'venda'}"]`)||{}).checked=true;
+    this.onTipo();this.renderThumbs();
+    $("formErr").classList.remove("show");
+    $("formScrim").classList.add("open");document.body.style.overflow="hidden";
+    setTimeout(()=>$("titulo").focus(),60);
+  },
+  closeForm(){$("formScrim").classList.remove("open");document.body.style.overflow="";},
+  onTipo(){
+    const t=document.querySelector('#tipoSeg input:checked').value;
+    $("precoField").classList.toggle("hide",t!=="venda");
+    $("trocaField").classList.toggle("hide",t!=="troca");
+  },
+  async addPhotos(e){
+    const files=[...e.target.files];e.target.value="";
+    for(const f of files){
+      if(pendingPhotos.length>=4){toast("Máximo de 4 fotos por anúncio.");break;}
+      if(!f.type.startsWith("image/"))continue;
+      try{pendingPhotos.push(await compress(f));}catch{toast("Não consegui processar uma das imagens.","bad");}
+    }
+    this.renderThumbs();
+  },
+  renderThumbs(){
+    $("thumbs").innerHTML=pendingPhotos.map((src,i)=>
+      `<div class="thumb"><img src="${src}" alt="foto ${i+1}"><button type="button" onclick="App.removePhoto(${i})" aria-label="Remover">&times;</button></div>`
+    ).join("");
+  },
+  removePhoto(i){pendingPhotos.splice(i,1);this.renderThumbs();},
+
+  async saveBook(e){
+    e.preventDefault();
+    const tipo=document.querySelector('#tipoSeg input:checked').value;
+    const preco=parseFloat($("preco").value||"0");
+    if(tipo==="venda"&&(!preco||preco<=0)){return this.formError("Informe um preço maior que zero para venda.");}
+    if(tipo==="troca"&&!$("trocaPor").value.trim()){return this.formError("Diga o que você aceita em troca.");}
+
+    const data={
+      titulo:$("titulo").value.trim(),
+      autor:$("autor").value.trim(),
+      editora:$("editora").value.trim(),
+      disciplina:$("disciplina").value.trim(),
+      serie:$("serie").value.trim(),
+      edicao:$("edicao").value.trim(),
+      estado:document.querySelector('#estadoSeg input:checked').value,
+      tipo,
+      preco:tipo==="venda"?preco:0,
+      trocaPor:tipo==="troca"?$("trocaPor").value.trim():"",
+      descricao:$("descricao").value.trim(),
+      fotos:pendingPhotos,
+      nome:$("nome").value.trim(),
+      whatsapp:$("whats").value.trim(),
+      cidade:$("cidade").value.trim(),
+      ownerId:uid
+    };
+    // payload guard (limite do documento Firestore = 1 MB)
+    if(JSON.stringify(data).length>950000){return this.formError("As fotos ficaram grandes demais. Remova uma imagem e tente de novo.");}
+
+    localStorage.setItem("pl_nome",data.nome);
+    localStorage.setItem("pl_whats",data.whatsapp);
+    localStorage.setItem("pl_cidade",data.cidade);
+
+    $("saveBtn").disabled=true;$("saveBtn").textContent="Salvando…";
+    try{
+      if(editingId){
+        await updateDoc(doc(db,"livros",editingId),data);
+        toast("Anúncio atualizado.","ok");
+      }else{
+        await addDoc(colRef,{...data,createdAt:serverTimestamp()});
+        toast("Anúncio publicado! Já está visível para as famílias.","ok");
+      }
+      this.closeForm();
+    }catch(err){
+      console.error(err);
+      this.formError("Não foi possível salvar. Verifique sua conexão e as regras do Firestore.");
+    }finally{
+      $("saveBtn").disabled=false;
+      $("saveBtn").textContent=editingId?"Salvar alterações":"Publicar anúncio";
+    }
+  },
+  formError(msg){const el=$("formErr");el.textContent=msg;el.classList.add("show");el.scrollIntoView({behavior:"smooth",block:"center"});},
+
+  async removeBook(id){
+    const b=BOOKS.find(x=>x.id===id);if(!b)return;
+    if(!confirm(`Remover o anúncio "${b.titulo}"? Isso não pode ser desfeito.`))return;
+    try{await deleteDoc(doc(db,"livros",id));toast("Anúncio removido.","ok");this.closeDetail();}
+    catch(err){console.error(err);toast("Não foi possível remover.","bad");}
+  },
+
+  /* ---------- filters ---------- */
+  toggleMine(){showMine=!showMine;$("mineBtn").classList.toggle("active",showMine);this.render();this.scrollToList();},
+  clearFilters(){["q","fDisc","fSerie","fTipo","fEstado"].forEach(id=>$(id).value="");$("fSort").value="recent";this.render();},
+
+  populateFilters(){
+    const discs=[...new Set(BOOKS.map(b=>b.disciplina).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
+    const series=[...new Set(BOOKS.map(b=>b.serie).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt",{numeric:true}));
+    const keep=(sel,vals,first)=>{const cur=sel.value;sel.innerHTML=`<option value="">${first}</option>`+vals.map(v=>`<option ${v===cur?"selected":""}>${escapeHtml(v)}</option>`).join("");};
+    keep($("fDisc"),discs,"Todas as disciplinas");
+    keep($("fSerie"),series,"Todas as séries");
+  },
+
+  filtered(){
+    const q=$("q").value.trim().toLowerCase();
+    const fD=$("fDisc").value,fS=$("fSerie").value,fT=$("fTipo").value,fE=$("fEstado").value,sort=$("fSort").value;
+    let list=BOOKS.filter(b=>{
+      if(showMine&&b.ownerId!==uid)return false;
+      if(fD&&b.disciplina!==fD)return false;
+      if(fS&&b.serie!==fS)return false;
+      if(fT&&b.tipo!==fT)return false;
+      if(fE&&b.estado!==fE)return false;
+      if(q){const blob=`${b.titulo} ${b.autor} ${b.disciplina} ${b.editora} ${b.serie}`.toLowerCase();if(!blob.includes(q))return false;}
+      return true;
+    });
+    if(sort==="priceA")list.sort((a,b)=>(a.tipo==="venda"?a.preco:1e12)-(b.tipo==="venda"?b.preco:1e12));
+    else if(sort==="priceD")list.sort((a,b)=>(b.tipo==="venda"?b.preco:-1)-(a.tipo==="venda"?a.preco:-1));
+    else list.sort((a,b)=>(b._t||0)-(a._t||0));
+    return list;
+  },
+
+  render(){
+    if(!isConfigured)return;
+    this.populateFilters();
+    const list=this.filtered();
+    const anyFilter=$("q").value||$("fDisc").value||$("fSerie").value||$("fTipo").value||$("fEstado").value;
+    $("clearF").classList.toggle("show",!!anyFilter||$("fSort").value!=="recent");
+
+    // stats (sobre tudo, não filtrado)
+    $("statBooks").textContent=BOOKS.length;
+    $("statTroca").textContent=BOOKS.filter(b=>b.tipo==="troca").length;
+    $("statDoa").textContent=BOOKS.filter(b=>b.tipo==="doacao").length;
+
+    const grid=$("grid");
+    if(!list.length){
+      grid.innerHTML="";
+      $("resultLine").textContent="";
+      const es=$("emptyState");es.classList.remove("hide");
+      if(showMine){$("emptyTitle").textContent="Você ainda não tem anúncios";$("emptyText").textContent="Os livros que você publicar aparecem aqui para gerenciar.";}
+      else if(anyFilter){$("emptyTitle").textContent="Nenhum livro com esses filtros";$("emptyText").textContent="Tente ampliar a busca ou limpar os filtros.";}
+      else{$("emptyTitle").textContent="Ainda não há livros por aqui";$("emptyText").textContent="Seja a primeira família a anunciar. Cadastre um livro que você não usa mais e ajude alguém da escola.";}
+      return;
+    }
+    $("emptyState").classList.add("hide");
+    $("resultLine").innerHTML=`<b>${list.length}</b> ${list.length===1?"livro encontrado":"livros encontrados"}${showMine?" — seus anúncios":""}`;
+    grid.innerHTML=list.map(b=>this.cardHTML(b)).join("");
+  },
+
+  cardHTML(b){
+    const [c1,c2]=coverFor(b);
+    const cover=b.fotos&&b.fotos.length
+      ? `<img src="${b.fotos[0]}" alt="${escapeHtml(b.titulo)}" loading="lazy">
+         ${b.fotos.length>1?`<span class="photocount"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>${b.fotos.length}</span>`:""}`
+      : `<div class="cover-gen" style="background:linear-gradient(150deg,${c1},${c2})">
+           <svg class="cg-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><path d="M3 4.5C3 4.5 6 3.2 9 4.2C11 4.9 12 6 12 6V20C12 20 11 18.9 9 18.2C6 17.2 3 18.5 3 18.5V4.5Z"/><path d="M21 4.5C21 4.5 18 3.2 15 4.2C13 4.9 12 6 12 6V20C12 20 13 18.9 15 18.2C18 17.2 21 18.5 21 18.5V4.5Z"/></svg>
+           <div class="cg-t">${escapeHtml(b.titulo)}</div>
+           <div class="cg-a">${escapeHtml(b.disciplina||"")}${b.serie?" · "+escapeHtml(b.serie):""}</div>
+         </div>`;
+    const priceHTML=b.tipo==="venda"
+      ? `<div class="price">R$ ${brl(b.preco)}</div>`
+      : b.tipo==="troca"
+        ? `<div class="price troca">Troca</div>`
+        : `<div class="price doacao">Doação</div>`;
+    const mine=b.ownerId===uid;
+    return `
+      <article class="card" onclick="App.openDetail('${b.id}')">
+        <div class="cover">
+          <span class="badge ${b.tipo}">${tipoLabel(b.tipo)}</span>
+          ${cover}
+        </div>
+        <div class="card-body">
+          <h3>${escapeHtml(b.titulo)}</h3>
+          ${b.autor?`<div class="card-author">${escapeHtml(b.autor)}</div>`:""}
+          <div class="meta">
+            ${b.disciplina?`<span class="chip">${escapeHtml(b.disciplina)}</span>`:""}
+            ${b.serie?`<span class="chip">${escapeHtml(b.serie)}</span>`:""}
+            <span class="chip">${escapeHtml(b.estado)}</span>
+          </div>
+        </div>
+        ${mine?`<div class="owner-row" onclick="event.stopPropagation()"><div class="owner-actions">
+            <button class="mini edit" onclick="App.editFromCard('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar</button>
+            <button class="mini del" onclick="App.removeBook('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>Excluir</button>
+          </div></div>`:""}
+        <div class="card-foot">
+          ${priceHTML}
+          <a class="wa-btn" href="${waLink(b)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.8-2-.9-.3-.1-.5-.2-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.3s1 2.7 1.1 2.9c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+            WhatsApp
+          </a>
+        </div>
+      </article>`;
+  },
+  editFromCard(id){const b=BOOKS.find(x=>x.id===id);if(b)this.openForm(b);},
+
+  /* ---------- detail ---------- */
+  openDetail(id){
+    const b=BOOKS.find(x=>x.id===id);if(!b)return;
+    detailBook=b;galIndex=0;
+    $("detailBody").innerHTML=this.detailHTML(b);
+    $("detailScrim").classList.add("open");document.body.style.overflow="hidden";
+  },
+  closeDetail(){$("detailScrim").classList.remove("open");document.body.style.overflow="";detailBook=null;},
+  gal(dir){
+    if(!detailBook?.fotos?.length)return;
+    const n=detailBook.fotos.length;galIndex=(galIndex+dir+n)%n;
+    $("detailBody").querySelector(".detail-gallery img").src=detailBook.fotos[galIndex];
+    $("detailBody").querySelectorAll(".gal-dots i").forEach((d,i)=>d.classList.toggle("on",i===galIndex));
+  },
+  detailHTML(b){
+    const [c1,c2]=coverFor(b);
+    const gallery=b.fotos&&b.fotos.length
+      ? `<div class="detail-gallery">
+           <img src="${b.fotos[0]}" alt="${escapeHtml(b.titulo)}">
+           ${b.fotos.length>1?`
+             <button class="gal-nav prev" onclick="App.gal(-1)" aria-label="Anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+             <button class="gal-nav next" onclick="App.gal(1)" aria-label="Próxima"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+             <div class="gal-dots">${b.fotos.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join("")}</div>`:""}
+         </div>`
+      : `<div class="detail-gallery"><div class="cover-gen" style="background:linear-gradient(150deg,${c1},${c2});min-height:100%">
+           <div class="cg-t" style="font-size:26px">${escapeHtml(b.titulo)}</div>
+           <div class="cg-a">${escapeHtml(b.disciplina||"")}${b.serie?" · "+escapeHtml(b.serie):""}</div></div></div>`;
+    const priceBlock=b.tipo==="venda"?`<div class="detail-price">R$ ${brl(b.preco)}</div>`
+      :b.tipo==="troca"?`<div class="detail-price" style="color:var(--trade);font-size:22px">Aberto a troca</div>`
+      :`<div class="detail-price" style="color:var(--doa);font-size:22px">Doação — gratuito</div>`;
+    const rows=[
+      ["Disciplina",b.disciplina],["Série / Ano",b.serie],["Autor",b.autor],
+      ["Editora",b.editora],["Edição",b.edicao],["Conservação",b.estado],
+      b.tipo==="troca"?["Aceita em troca",b.trocaPor]:null,
+      ["Anunciante",b.nome],["Local",b.cidade]
+    ].filter(r=>r&&r[1]);
+    const mine=b.ownerId===uid;
+    return `
+      ${gallery}
+      <span class="badge ${b.tipo}" style="position:static;display:inline-block;margin-bottom:10px">${tipoLabel(b.tipo)}</span>
+      <h2 style="font-size:27px">${escapeHtml(b.titulo)}</h2>
+      ${priceBlock}
+      <dl class="dl">${rows.map(([k,v])=>`<dt>${k}</dt><dd>${escapeHtml(v)}</dd>`).join("")}</dl>
+      ${b.descricao?`<div class="detail-desc">${escapeHtml(b.descricao)}</div>`:""}
+      <a class="btn wa-btn detail-wa" href="${waLink(b)}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/><path d="M17.5 14.4c-.3-.2-1.7-.8-2-.9-.3-.1-.5-.2-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.3s1 2.7 1.1 2.9c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3z"/></svg>
+        Falar com ${escapeHtml((b.nome||"o anunciante").split(" ")[0])} no WhatsApp
+      </a>
+      ${mine?`<div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn btn-ghost" style="flex:1" onclick="App.openDetailEdit()">Editar anúncio</button>
+          <button class="btn btn-ghost" style="flex:1;color:var(--danger);border-color:var(--danger-soft)" onclick="App.removeBook('${b.id}')">Excluir</button>
+        </div>`:""}`;
+  },
+  openDetailEdit(){const b=detailBook;this.closeDetail();this.openForm(b);},
+};
+window.App=App;
+
+/* fecha modais com ESC / clique no fundo */
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){App.closeForm();App.closeDetail();}});
+$("formScrim").addEventListener("click",e=>{if(e.target===$("formScrim"))App.closeForm();});
+$("detailScrim").addEventListener("click",e=>{if(e.target===$("detailScrim"))App.closeDetail();});
+
+/* ============================================================
+   Boot
+   ============================================================ */
+function showSetup(){
+  $("setupCard").classList.remove("hide");
+  $("heroSection").classList.add("hide");
+  $("listTop").classList.add("hide");
+  $("cloudDot").classList.add("hide");
+  $("loadingState").classList.add("hide");
+}
+
+if(!isConfigured){
+  showSetup();
+}else{
+  $("loadingState").classList.remove("hide");
+  try{
+    const app=initializeApp(firebaseConfig);
+    auth=getAuth(app);db=getFirestore(app);colRef=collection(db,"livros");
+    onAuthStateChanged(auth,user=>{
+      if(user){
+        uid=user.uid;
+        const qy=query(colRef,orderBy("createdAt","desc"));
+        onSnapshot(qy,snap=>{
+          BOOKS=snap.docs.map(d=>{
+            const data=d.data();
+            const t=data.createdAt?.toMillis?data.createdAt.toMillis():Date.now();
+            return {id:d.id,...data,_t:t};
+          });
+          $("loadingState").classList.add("hide");
+          App.render();
+        },err=>{
+          console.error(err);
+          $("loadingState").classList.add("hide");
+          toast("Erro ao ler os dados. Confira as regras do Firestore.","bad");
+        });
+      }
+    });
+    signInAnonymously(auth).catch(err=>{
+      console.error(err);
+      $("loadingState").classList.add("hide");
+      toast("Ative o login Anônimo no Firebase (Authentication).","bad");
+    });
+  }catch(err){
+    console.error(err);
+    $("loadingState").classList.add("hide");
+    toast("Configuração do Firebase inválida. Revise o firebaseConfig.","bad");
+  }
+}
+</script>
+</body>
+</html>
