@@ -291,6 +291,40 @@
   .cloud-dot{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);font-weight:600}
   .cloud-dot i{width:8px;height:8px;border-radius:50%;background:var(--trade);box-shadow:0 0 0 3px var(--trade-soft)}
 
+  /* ---------- anúncios / publicidade ---------- */
+  .ad-wrap{max-width:1140px;margin:0 auto;padding:8px 20px 0}
+  .ad-wrap.footer-ad{padding:10px 20px 30px}
+  .ad-label{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.6px;
+    text-transform:uppercase;color:#a9a293;margin:0 0 6px 2px}
+  .ad-label::before{content:"";width:5px;height:5px;border-radius:50%;background:#c9c1ae}
+  .ad-slot{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+    background:var(--surface);box-shadow:var(--shadow)}
+  .ad-slide{display:block;text-decoration:none;position:relative;aspect-ratio:1100/300;overflow:hidden}
+  .ad-slide img{width:100%;height:100%;object-fit:cover;display:block}
+  .ad-slide.no-img{display:flex;align-items:center;justify-content:center;flex-direction:column;
+    background:linear-gradient(120deg,var(--surface-2),#fff);color:var(--ink);padding:20px;text-align:center}
+  .ad-slide.no-img .at{font-family:"Fraunces",serif;font-weight:600;font-size:22px}
+  .ad-slide.no-img .ad-cta{margin-top:8px;font-size:13px;font-weight:600;color:var(--marigold)}
+  .ad-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:2}
+  .ad-dots button{width:8px;height:8px;border-radius:50%;border:none;background:rgba(255,255,255,.6);
+    box-shadow:0 0 0 1px rgba(0,0,0,.15);padding:0;cursor:pointer}
+  .ad-dots button.on{background:#fff;width:18px;border-radius:5px}
+  .ad-sponsor{position:absolute;top:9px;right:10px;background:rgba(20,40,37,.62);color:#fff;font-size:10px;
+    font-weight:600;letter-spacing:.4px;padding:3px 8px;border-radius:20px;z-index:2}
+  /* native ad card dentro da grade */
+  .ad-card{grid-column:span 1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+    overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;text-decoration:none;
+    transition:transform .14s,box-shadow .14s}
+  .ad-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+  .ad-card .ad-cover{aspect-ratio:5/4;position:relative;overflow:hidden;background:var(--surface-2)}
+  .ad-card .ad-cover img{width:100%;height:100%;object-fit:cover}
+  .ad-card .ad-cover.no-img{display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-weight:600}
+  .ad-card .ad-meta{padding:14px 16px}
+  .ad-card .ad-meta .at{font-family:"Fraunces",serif;font-weight:600;font-size:17px;color:var(--ink);line-height:1.15}
+  .ad-card .ad-meta .ad-cta{margin-top:8px;display:inline-flex;align-items:center;gap:6px;color:var(--marigold);font-weight:700;font-size:13px}
+  .ad-tag{position:absolute;top:10px;left:10px;background:#fff;color:var(--ink-soft);font-size:10px;font-weight:700;
+    letter-spacing:.4px;padding:4px 9px;border-radius:20px;box-shadow:var(--shadow)}
+
   @media(max-width:860px){
     .hero-grid{grid-template-columns:1fr;gap:8px}
     .hero-art{display:none}
@@ -426,6 +460,12 @@ service cloud.firestore {
   </div>
 </section>
 
+<!-- ESPAÇO PUBLICITÁRIO — topo da lista -->
+<div class="ad-wrap hide" id="adTopWrap">
+  <div class="ad-label">Publicidade</div>
+  <div class="ad-slot" id="adTopSlot"></div>
+</div>
+
 <div class="resultline" id="resultLine"></div>
 <main class="grid" id="grid"></main>
 
@@ -442,6 +482,12 @@ service cloud.firestore {
   <h2>Carregando os livros…</h2>
   <p>Buscando os anúncios na nuvem.</p>
 </section>
+
+<!-- ESPAÇO PUBLICITÁRIO — rodapé -->
+<div class="ad-wrap footer-ad hide" id="adFootWrap">
+  <div class="ad-label">Publicidade</div>
+  <div class="ad-slot" id="adFootSlot"></div>
+</div>
 
 <footer class="footer">
   <b>PassaLivro</b> — feito para a comunidade escolar. Os negócios são combinados diretamente entre as famílias pelo WhatsApp.
@@ -614,8 +660,10 @@ import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
 
 const isConfigured = !String(firebaseConfig.apiKey).startsWith("COLE_AQUI");
 
-let db=null, auth=null, uid=null, colRef=null;
+let db=null, auth=null, uid=null, colRef=null, bannerRef=null;
 let BOOKS=[];           // anúncios vindos da nuvem
+let BANNERS=[];         // banners publicitários
+let adTopIdx=0, adTimer=null;
 let pendingPhotos=[];   // fotos do formulário (base64)
 let editingId=null;
 let showMine=false;
@@ -852,8 +900,60 @@ const App={
     }
     $("emptyState").classList.add("hide");
     $("resultLine").innerHTML=`<b>${list.length}</b> ${list.length===1?"livro encontrado":"livros encontrados"}${showMine?" — seus anúncios":""}`;
-    grid.innerHTML=list.map(b=>this.cardHTML(b)).join("");
+    // intercala anúncios "grade" entre os cartões de livros
+    const gradeAds=BANNERS.filter(a=>a.posicao==="grade");
+    const cells=[];let ai=0;
+    list.forEach((b,i)=>{
+      cells.push(this.cardHTML(b));
+      if(gradeAds.length && (i+1)%6===0 && i<list.length-1){
+        cells.push(this.adCardHTML(gradeAds[ai%gradeAds.length]));ai++;
+      }
+    });
+    grid.innerHTML=cells.join("");
   },
+
+  /* ----- publicidade ----- */
+  adClickAttrs(){return 'target="_blank" rel="noopener sponsored"';},
+  adHref(a){return a.link?`href="${escapeHtml(a.link)}"`:'href="#" onclick="return false"';},
+  adSlideHTML(a){
+    const inner=a.imagem
+      ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy">`
+      : `<div class="at">${escapeHtml(a.titulo||'Seu anúncio aqui')}</div>${a.descricao?`<div class="ad-cta">${escapeHtml(a.descricao)}</div>`:''}`;
+    const cls=a.imagem?"ad-slide":"ad-slide no-img";
+    return `<a class="${cls}" ${this.adHref(a)} ${this.adClickAttrs()}>
+              <span class="ad-sponsor">Anúncio</span>${inner}</a>`;
+  },
+  adCardHTML(a){
+    const cover=a.imagem
+      ? `<div class="ad-cover"><span class="ad-tag">Publicidade</span><img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy"></div>`
+      : `<div class="ad-cover no-img"><span class="ad-tag">Publicidade</span>${escapeHtml(a.titulo||'Anúncio')}</div>`;
+    return `<a class="ad-card" ${this.adHref(a)} ${this.adClickAttrs()}>
+        ${cover}
+        <div class="ad-meta"><div class="at">${escapeHtml(a.titulo||'Anúncio')}</div>
+        <span class="ad-cta">${escapeHtml(a.descricao||'Saiba mais')} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div></a>`;
+  },
+  renderAds(){
+    const slot=(pos)=>BANNERS.filter(a=>a.posicao===pos);
+    // topo (carrossel)
+    const top=slot("topo");
+    const tw=$("adTopWrap"),ts=$("adTopSlot");
+    if(top.length){
+      tw.classList.remove("hide");
+      if(adTopIdx>=top.length)adTopIdx=0;
+      const dots=top.length>1?`<div class="ad-dots">${top.map((_,i)=>`<button class="${i===adTopIdx?'on':''}" onclick="App.adGo(${i})" aria-label="Anúncio ${i+1}"></button>`).join("")}</div>`:"";
+      ts.innerHTML=this.adSlideHTML(top[adTopIdx])+dots;
+      if(adTimer)clearInterval(adTimer);
+      if(top.length>1 && !matchMedia("(prefers-reduced-motion:reduce)").matches){
+        adTimer=setInterval(()=>{adTopIdx=(adTopIdx+1)%top.length;this.renderAds();},7000);
+      }
+    }else{tw.classList.add("hide");if(adTimer){clearInterval(adTimer);adTimer=null;}}
+    // rodapé (mostra o primeiro ativo)
+    const foot=slot("rodape");
+    const fw=$("adFootWrap"),fs=$("adFootSlot");
+    if(foot.length){fw.classList.remove("hide");fs.innerHTML=this.adSlideHTML(foot[0]);}
+    else fw.classList.add("hide");
+  },
+  adGo(i){adTopIdx=i;this.renderAds();},
 
   cardHTML(b){
     const [c1,c2]=coverFor(b);
@@ -980,7 +1080,7 @@ if(!isConfigured){
   $("loadingState").classList.remove("hide");
   try{
     const app=initializeApp(firebaseConfig);
-    auth=getAuth(app);db=getFirestore(app);colRef=collection(db,"livros");
+    auth=getAuth(app);db=getFirestore(app);colRef=collection(db,"livros");bannerRef=collection(db,"banners");
     onAuthStateChanged(auth,user=>{
       if(user){
         uid=user.uid;
@@ -998,6 +1098,12 @@ if(!isConfigured){
           $("loadingState").classList.add("hide");
           toast("Erro ao ler os dados. Confira as regras do Firestore.","bad");
         });
+        // banners ativos (publicidade)
+        onSnapshot(query(bannerRef,orderBy("ordem","asc")),snap=>{
+          BANNERS=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.ativo!==false);
+          App.renderAds();
+          App.render();
+        },err=>console.warn("banners:",err));
       }
     });
     signInAnonymously(auth).catch(err=>{
