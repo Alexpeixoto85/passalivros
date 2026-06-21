@@ -400,6 +400,40 @@
     font-size:9.5px;font-weight:700;letter-spacing:.4px;padding:3px 7px;border-radius:20px;z-index:3
   }
 
+  /* Camada de escurecimento sobre a imagem (deixa o texto sobreposto mais legível) */
+  .ad-scrim{position:absolute;inset:0;z-index:1;pointer-events:none}
+
+  /* Botão de play (banners de vídeo) */
+  .ad-play{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;
+    width:58px;height:58px;border-radius:50%;background:rgba(20,40,37,.62);
+    display:grid;place-items:center;color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.35);
+    transition:transform .15s,background .15s;pointer-events:none
+  }
+  .ad-play svg{width:26px;height:26px;margin-left:3px}
+  .ad-slide:hover .ad-play,.ad-card:hover .ad-play{transform:translate(-50%,-50%) scale(1.07);background:var(--ink)}
+  .ad-play.sm{width:46px;height:46px}.ad-play.sm svg{width:21px;height:21px}
+
+  /* ---------- modal de vídeo (YouTube no próprio portal) ---------- */
+  .vidmodal{position:fixed;inset:0;z-index:120;background:rgba(8,18,16,.94);
+    display:none;align-items:center;justify-content:center;padding:18px}
+  .vidmodal.open{display:flex}
+  .vid-inner{width:100%;max-width:980px;background:#000;border-radius:16px;overflow:hidden;
+    box-shadow:var(--shadow-lg);display:flex;flex-direction:column}
+  .vid-bar{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#0c1a18}
+  .vid-title{flex:1;min-width:0;color:#fff;font-weight:600;font-size:14px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.92}
+  .vid-actions{display:flex;gap:8px;flex:none}
+  .vid-btn{width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center}
+  .vid-btn:hover{background:rgba(255,255,255,.22)}
+  .vid-btn svg{width:19px;height:19px}
+  .vid-frame{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+  .vid-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+  .vid-inner:fullscreen{max-width:none;width:100%;height:100%;border-radius:0;justify-content:center}
+  .vid-inner:fullscreen .vid-frame{flex:1;aspect-ratio:auto;height:100%}
+  @media(max-width:560px){.vid-bar{padding:8px 10px}.vid-btn{width:36px;height:36px}}
+
   /* native ad card dentro da grade */
   .ad-card{grid-column:span 1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
     overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;text-decoration:none;
@@ -918,20 +952,34 @@ service cloud.firestore {
 
       <!-- login -->
       <form id="authLogin" class="hide" onsubmit="App.doLogin(event)">
-        <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Use o seu WhatsApp (com DDD) como usuário.</p>
+        <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Entre com o e-mail (ou WhatsApp) e a senha do seu cadastro.</p>
         <div class="field">
-          <label class="lab" for="loginWhats">WhatsApp (usuário)</label>
-          <input class="inp" id="loginWhats" type="tel" placeholder="Ex.: (11) 99876-5432" autocomplete="username">
+          <label class="lab" for="loginWhats">E-mail ou WhatsApp</label>
+          <input class="inp" id="loginWhats" type="text" placeholder="seu@email.com ou (11) 99876-5432" autocomplete="username">
         </div>
         <div class="field">
           <label class="lab" for="loginSenha">Senha</label>
-          <input class="inp" id="loginSenha" type="password" inputmode="numeric" placeholder="Sua senha de 6 dígitos" autocomplete="current-password">
+          <input class="inp" id="loginSenha" type="password" placeholder="Sua senha" autocomplete="current-password">
+          <p class="help-txt" style="margin-top:8px"><a style="color:var(--marigold);font-weight:600;cursor:pointer" onclick="App.authShow('forgot')">Esqueci minha senha</a></p>
         </div>
         <div class="form-foot" style="justify-content:space-between">
           <button type="button" class="btn btn-ghost" onclick="App.authShow('choice')">Voltar</button>
           <button type="submit" class="btn btn-primary" id="loginBtn">Entrar</button>
         </div>
         <p class="help-txt" style="text-align:center;margin-top:12px">Não tem conta? <a style="color:var(--marigold);font-weight:600;cursor:pointer" onclick="App.authShow('register')">Criar agora</a></p>
+      </form>
+
+      <!-- esqueci a senha -->
+      <form id="authForgot" class="hide" onsubmit="App.doForgot(event)">
+        <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Digite o e-mail do seu cadastro. Enviaremos um link para você criar uma nova senha.</p>
+        <div class="field">
+          <label class="lab" for="forgotEmail">E-mail cadastrado</label>
+          <input class="inp" id="forgotEmail" type="email" placeholder="seu@email.com" autocomplete="email">
+        </div>
+        <div class="form-foot" style="justify-content:space-between">
+          <button type="button" class="btn btn-ghost" onclick="App.authShow('login')">Voltar</button>
+          <button type="submit" class="btn btn-primary" id="forgotBtn">Enviar link</button>
+        </div>
       </form>
 
       <!-- registro -->
@@ -945,13 +993,13 @@ service cloud.firestore {
           <input class="inp" id="regWhats" type="tel" placeholder="Ex.: (11) 99876-5432" autocomplete="tel">
         </div>
         <div class="field">
-          <label class="lab" for="regEmail">E-mail <span class="opt">(opcional)</span></label>
-          <input class="inp" id="regEmail" type="email" placeholder="voce@exemplo.com">
+          <label class="lab" for="regEmail">E-mail <span class="opt">— para recuperar a senha</span></label>
+          <input class="inp" id="regEmail" type="email" placeholder="voce@exemplo.com" autocomplete="email">
         </div>
         <div class="field">
-          <label class="lab" for="regSenha">Senha de 6 dígitos</label>
-          <input class="inp" id="regSenha" type="password" inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="Ex.: 123456" autocomplete="new-password">
-          <div class="help-txt">Crie uma senha numérica de 6 dígitos.</div>
+          <label class="lab" for="regSenha">Senha</label>
+          <input class="inp" id="regSenha" type="password" minlength="6" placeholder="Pelo menos 6 caracteres" autocomplete="new-password">
+          <div class="help-txt">Use no mínimo 6 caracteres. Pode ser números, letras ou os dois.</div>
         </div>
         <div class="form-foot" style="justify-content:space-between">
           <button type="button" class="btn btn-ghost" onclick="App.authShow('choice')">Voltar</button>
@@ -1027,6 +1075,20 @@ service cloud.firestore {
   <div class="lb-count" id="lbCount"></div>
 </div>
 
+<!-- =============== MODAL: VÍDEO (YouTube no portal) =============== -->
+<div class="vidmodal" id="videoModal" role="dialog" aria-modal="true" aria-label="Vídeo">
+  <div class="vid-inner" id="videoInner">
+    <div class="vid-bar">
+      <span class="vid-title" id="videoTitle">Publicidade</span>
+      <div class="vid-actions">
+        <button class="vid-btn" onclick="App.videoFullscreen()" aria-label="Tela cheia" title="Tela cheia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+        <button class="vid-btn" onclick="App.closeVideo()" aria-label="Fechar" title="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+    </div>
+    <div class="vid-frame" id="videoFrame"></div>
+  </div>
+</div>
+
 <div class="toasts" id="toasts"></div>
 
 <script type="module">
@@ -1048,7 +1110,7 @@ const firebaseConfig = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged,
          createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
-         EmailAuthProvider, linkWithCredential }
+         EmailAuthProvider, linkWithCredential, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
          onSnapshot, query, orderBy, serverTimestamp, getDoc, setDoc,
@@ -1149,6 +1211,23 @@ function isRegistered(){return !!(currentUser&&!currentUser.isAnonymous);}
 function isValidEmail(s){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim());}
 /* telefone vira o "usuário": e-mail sintético para o Firebase Auth */
 function phoneToEmail(raw){return `${normalizePhone(raw)}@${EMAIL_DOMAIN}`;}
+/* extrai o ID de um vídeo do YouTube a partir de vários formatos de link */
+function youtubeId(url){
+  if(!url)return "";
+  const s=String(url).trim();
+  if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;
+  let m=s.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if(m)return m[1];
+  m=s.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+  return m?m[1]:"";
+}
+/* deixa um texto seguro para usar dentro de uma string JS em atributo onclick="" */
+function jsAttr(s){
+  return String(s||"")
+    .replace(/\\/g,"\\\\").replace(/'/g,"\\'")
+    .replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")
+    .replace(/\r?\n/g," ");
+}
 
 /* ---------------- toast ---------------- */
 function toast(msg,kind="",icon=""){
@@ -1219,15 +1298,19 @@ const App={
   },
   closeRegister(){$("regScrim").classList.remove("open");document.body.style.overflow="";this._afterAuth=null;},
   authShow(view){
-    ["authChoice","authLogin","authRegister","authAccount"].forEach(id=>$(id).classList.add("hide"));
+    ["authChoice","authLogin","authRegister","authAccount","authForgot"].forEach(id=>$(id).classList.add("hide"));
     $("authErr").classList.remove("show");
-    const titles={choice:"Entrar no PassaLivro",login:"Entrar na sua conta",register:"Criar uma conta",account:"Minha conta"};
+    const titles={choice:"Entrar no PassaLivro",login:"Entrar na sua conta",register:"Criar uma conta",account:"Minha conta",forgot:"Recuperar senha"};
     $("regTitle").textContent=titles[view]||"Entrar no PassaLivro";
     if(view==="choice")$("authChoice").classList.remove("hide");
     else if(view==="login"){
       $("authLogin").classList.remove("hide");
-      $("loginWhats").value=localStorage.getItem("pl_whats")||"";
+      $("loginWhats").value=localStorage.getItem("pl_email")||localStorage.getItem("pl_whats")||"";
       setTimeout(()=>$("loginWhats").focus(),60);
+    }else if(view==="forgot"){
+      $("authForgot").classList.remove("hide");
+      $("forgotEmail").value=localStorage.getItem("pl_email")||"";
+      setTimeout(()=>$("forgotEmail").focus(),60);
     }else if(view==="register"){
       $("authRegister").classList.remove("hide");
       $("regNome").value=localStorage.getItem("pl_nome")||"";
@@ -1247,26 +1330,49 @@ const App={
 
   async doLogin(e){
     e.preventDefault();
-    const whats=$("loginWhats").value.trim();
+    const id=$("loginWhats").value.trim();
     const senha=$("loginSenha").value;
-    if(normalizePhone(whats).length<12)return this.authError("Informe o WhatsApp com DDD.");
+    const byEmail=isValidEmail(id);
+    if(!id)return this.authError("Informe seu e-mail ou WhatsApp.");
+    if(!byEmail&&normalizePhone(id).length<12)return this.authError("Informe um e-mail válido ou um WhatsApp com DDD.");
     if(!senha)return this.authError("Informe sua senha.");
+    const loginEmail=byEmail?id:phoneToEmail(id);
     $("loginBtn").disabled=true;$("loginBtn").textContent="Entrando…";
     try{
-      await signInWithEmailAndPassword(auth,phoneToEmail(whats),senha);
-      localStorage.setItem("pl_whats",whats);
+      await signInWithEmailAndPassword(auth,loginEmail,senha);
+      if(byEmail)localStorage.setItem("pl_email",id);else localStorage.setItem("pl_whats",id);
       const cb=this._afterAuth;
       toast("Bem-vindo de volta! 👋","ok");
       this.closeRegister();
       if(cb)setTimeout(cb,200);
     }catch(err){
-      const m={"auth/invalid-credential":"WhatsApp ou senha incorretos.",
+      const m={"auth/invalid-credential":"E-mail/WhatsApp ou senha incorretos.",
         "auth/wrong-password":"Senha incorreta.",
-        "auth/user-not-found":"Não há conta com esse WhatsApp. Crie uma conta.",
+        "auth/user-not-found":"Não há conta com esse e-mail/WhatsApp. Crie uma conta.",
         "auth/too-many-requests":"Muitas tentativas. Tente de novo em alguns minutos.",
         "auth/operation-not-allowed":"Ative o provedor E-mail/senha no Firebase (Authentication)."}[err.code];
       this.authError(m||("Não foi possível entrar: "+(err.code||err.message)));
     }finally{$("loginBtn").disabled=false;$("loginBtn").textContent="Entrar";}
+  },
+
+  async doForgot(e){
+    e.preventDefault();
+    const email=$("forgotEmail").value.trim();
+    if(!isValidEmail(email))return this.authError("Informe o e-mail que você usou no cadastro.");
+    $("forgotBtn").disabled=true;$("forgotBtn").textContent="Enviando…";
+    try{
+      await sendPasswordResetEmail(auth,email);
+      localStorage.setItem("pl_email",email);
+      toast("Enviamos um link de redefinição para o seu e-mail. 📧 Confira a caixa de entrada e o spam.","ok");
+      this.authShow("login");
+      $("loginWhats").value=email;
+    }catch(err){
+      const m={"auth/user-not-found":"Não encontramos uma conta com esse e-mail. Contas antigas que usaram só o WhatsApp não têm e-mail para recuperação.",
+        "auth/invalid-email":"E-mail inválido.",
+        "auth/too-many-requests":"Muitas tentativas. Tente de novo em alguns minutos.",
+        "auth/operation-not-allowed":"Ative o provedor E-mail/senha no Firebase (Authentication)."}[err.code];
+      this.authError(m||("Não foi possível enviar o link: "+(err.code||err.message)));
+    }finally{$("forgotBtn").disabled=false;$("forgotBtn").textContent="Enviar link";}
   },
 
   async doRegister(e){
@@ -1277,27 +1383,27 @@ const App={
     const senha=$("regSenha").value;
     if(!nome)return this.authError("Informe seu nome.");
     if(normalizePhone(whatsapp).length<12)return this.authError("Informe um WhatsApp válido com DDD.");
-    if(email&&!isValidEmail(email))return this.authError("O e-mail informado não é válido.");
-    if(!/^\d{6}$/.test(senha))return this.authError("A senha deve ter 6 dígitos numéricos.");
+    if(!isValidEmail(email))return this.authError("Informe um e-mail válido — é por ele que você recupera a senha.");
+    if(!senha||senha.length<6)return this.authError("A senha deve ter ao menos 6 caracteres.");
     $("regSaveBtn").disabled=true;$("regSaveBtn").textContent="Criando…";
     try{
-      const cred=EmailAuthProvider.credential(phoneToEmail(whatsapp),senha);
-      // Se há uma sessão anônima, promovemos ela para conta (mantém o MESMO uid,
+      const cred=EmailAuthProvider.credential(email,senha);
+      // Se há sessão anônima, promovemos ela para conta (mantém o MESMO uid,
       // para que os anúncios criados continuem sendo do usuário). Senão, cria conta nova.
       if(auth.currentUser&&auth.currentUser.isAnonymous){
         try{
           await linkWithCredential(auth.currentUser,cred);
         }catch(linkErr){
           if(linkErr.code==="auth/email-already-in-use"||linkErr.code==="auth/credential-already-in-use"){
-            // já existe conta com esse WhatsApp → entra nela
-            await signInWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha);
+            // já existe conta com esse e-mail → entra nela
+            await signInWithEmailAndPassword(auth,email,senha);
           }else throw linkErr;
         }
       }else{
-        await signInWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha)
-          .catch(()=>createUserWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha));
+        await signInWithEmailAndPassword(auth,email,senha)
+          .catch(()=>createUserWithEmailAndPassword(auth,email,senha));
       }
-      // grava/atualiza o perfil na conta atual
+      // grava/atualiza o perfil na conta atual (fica salvo na nuvem)
       await setDoc(doc(db,"usuarios",auth.currentUser.uid),{
         nome,whatsapp,email,cadastrado:true,
         cadastradoEm:serverTimestamp(),ultimoAcesso:serverTimestamp()
@@ -1312,11 +1418,12 @@ const App={
       this.render();
       if(cb)setTimeout(cb,200);
     }catch(err){
-      const m={"auth/email-already-in-use":"Já existe uma conta com esse WhatsApp. Toque em \"Já tenho conta\".",
-        "auth/credential-already-in-use":"Esse WhatsApp já tem conta. Toque em \"Já tenho conta\".",
-        "auth/wrong-password":"Esse WhatsApp já tem conta, mas a senha não confere. Toque em \"Já tenho conta\".",
-        "auth/invalid-credential":"Esse WhatsApp já tem conta, mas a senha não confere. Toque em \"Já tenho conta\".",
-        "auth/weak-password":"A senha deve ter ao menos 6 dígitos.",
+      const m={"auth/email-already-in-use":"Já existe uma conta com esse e-mail. Toque em \"Já tenho conta\".",
+        "auth/credential-already-in-use":"Esse e-mail já tem conta. Toque em \"Já tenho conta\".",
+        "auth/wrong-password":"Esse e-mail já tem conta, mas a senha não confere. Use \"Esqueci minha senha\".",
+        "auth/invalid-credential":"Esse e-mail já tem conta, mas a senha não confere. Use \"Esqueci minha senha\".",
+        "auth/weak-password":"A senha deve ter ao menos 6 caracteres.",
+        "auth/invalid-email":"O e-mail informado não é válido.",
         "auth/operation-not-allowed":"Ative o provedor E-mail/senha no Firebase (Authentication)."}[err.code];
       this.authError(m||("Não foi possível criar a conta: "+(err.code||err.message)));
     }finally{$("regSaveBtn").disabled=false;$("regSaveBtn").textContent="Criar conta";}
@@ -1684,8 +1791,20 @@ const App={
     };
     return map[pos]||map["mid-center"];
   },
+  /* imagem de fundo do slide: capa enviada ou, em vídeo sem capa, a miniatura do YouTube */
+  adMediaBg(a){
+    if(a.imagem) return a.imagem;
+    const vid=youtubeId(a.videoUrl);
+    return vid?`https://img.youtube.com/vi/${vid}/hqdefault.jpg`:"";
+  },
+  /* camada escura semitransparente sobre a imagem (legibilidade do texto) */
+  adScrimHTML(a){
+    const s=Math.min(85,Math.max(0,Number(a.overlayScrim)||0));
+    return s>0?`<div class="ad-scrim" style="background:rgba(0,0,0,${s/100})"></div>`:"";
+  },
+  adIsVideo(a){return a.tipoMidia==="video" && !!youtubeId(a.videoUrl);},
   adOverlayHTML(a){
-    if(!a.imagem||(!a.overlayTitulo&&!a.overlaySub)) return "";
+    if(!this.adMediaBg(a)||(!a.overlayTitulo&&!a.overlaySub)) return "";
     const size=Math.min(72,Math.max(12,a.overlaySize||28));
     const subSize=Math.round(size*0.6);
     const font=escapeHtml(a.overlayFont||"DM Sans");
@@ -1703,22 +1822,38 @@ const App={
     return `<div style="position:absolute;z-index:2;max-width:75%;line-height:1.25;pointer-events:none;word-break:break-word;font-family:'${font}',sans-serif;${posStyle}">${titleHTML}${subHTML}</div>`;
   },
   adSlideHTML(a, idx, total){
+    const bg=this.adMediaBg(a);
+    const cls=`ad-slide${bg?'':' no-img'}${idx===0?' active':''}`;
+    if(this.adIsVideo(a)){
+      const vid=youtubeId(a.videoUrl);
+      const media=bg
+        ? `<img src="${bg}" alt="${escapeHtml(a.titulo||'Vídeo')}" loading="lazy">`
+        : `<div class="at">${escapeHtml(a.titulo||'Assista ao vídeo')}</div>`;
+      return `<a class="${cls}" data-idx="${idx}" href="#" role="button"
+                onclick="App.openVideo('${vid}','${jsAttr(a.titulo||'')}');return false;">
+                ${media}${this.adScrimHTML(a)}${this.adOverlayHTML(a)}
+                <span class="ad-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></a>`;
+    }
     const inner=a.imagem
-      ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy">${this.adOverlayHTML(a)}`
+      ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Publicidade')}" loading="lazy">${this.adScrimHTML(a)}${this.adOverlayHTML(a)}`
       : `<div class="at">${escapeHtml(a.titulo||'Seu anúncio aqui')}</div>${a.descricao?`<div class="ad-cta">${escapeHtml(a.descricao)}</div>`:''}`;
-    const cls=`ad-slide${a.imagem?'':' no-img'}${idx===0?' active':''}`;
-    return `<a class="${cls}" data-idx="${idx}" ${this.adHref(a)} ${this.adClickAttrs()}>
-              <span class="ad-sponsor">Anúncio</span>${inner}</a>`;
+    return `<a class="${cls}" data-idx="${idx}" ${this.adHref(a)} ${this.adClickAttrs()}>${inner}</a>`;
   },
 
   adCardHTML(a){
-    const cover=a.imagem
-      ? `<div class="ad-cover"><span class="ad-tag">Publicidade</span><img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy"></div>`
-      : `<div class="ad-cover no-img"><span class="ad-tag">Publicidade</span>${escapeHtml(a.titulo||'Anúncio')}</div>`;
-    return `<a class="ad-card" ${this.adHref(a)} ${this.adClickAttrs()}>
+    const bg=this.adMediaBg(a);
+    const isVid=this.adIsVideo(a);
+    const cover=bg
+      ? `<div class="ad-cover"><span class="ad-tag">Publicidade</span><img src="${bg}" alt="${escapeHtml(a.titulo||'Publicidade')}" loading="lazy">${this.adScrimHTML(a)}${isVid?'<span class="ad-play sm"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>':''}</div>`
+      : `<div class="ad-cover no-img"><span class="ad-tag">Publicidade</span>${escapeHtml(a.titulo||'Publicidade')}</div>`;
+    const open=isVid
+      ? `href="#" role="button" onclick="App.openVideo('${youtubeId(a.videoUrl)}','${jsAttr(a.titulo||'')}');return false;"`
+      : `${this.adHref(a)} ${this.adClickAttrs()}`;
+    const cta=a.descricao||(isVid?'Assistir ao vídeo':'Saiba mais');
+    return `<a class="ad-card" ${open}>
         ${cover}
-        <div class="ad-meta"><div class="at">${escapeHtml(a.titulo||'Anúncio')}</div>
-        <span class="ad-cta">${escapeHtml(a.descricao||'Saiba mais')} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div></a>`;
+        <div class="ad-meta"><div class="at">${escapeHtml(a.titulo||'Publicidade')}</div>
+        <span class="ad-cta">${escapeHtml(cta)} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div></a>`;
   },
 
   buildCarousel(slot, wrap, slotEl){
@@ -1777,6 +1912,29 @@ const App={
   },
 
   adGo(i){ /* mantido por compatibilidade — não usado no novo carrossel */ },
+
+  /* ----- player de vídeo (YouTube) dentro do portal ----- */
+  openVideo(id,title){
+    if(!id)return;
+    $("videoTitle").textContent=title||"Publicidade";
+    $("videoFrame").innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1&modestbranding=1" title="${escapeHtml(title||'Vídeo')}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    $("videoModal").classList.add("open");
+    document.body.style.overflow="hidden";
+  },
+  closeVideo(){
+    if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
+    $("videoModal").classList.remove("open");
+    $("videoFrame").innerHTML="";          // interrompe a reprodução
+    document.body.style.overflow="";
+  },
+  videoFullscreen(){
+    const el=$("videoInner");
+    const req=el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
+    if(req){req.call(el);return;}
+    // iOS Safari: o iframe entra em tela cheia pelo player nativo
+    const ifr=$("videoFrame").querySelector("iframe");
+    if(ifr&&ifr.webkitEnterFullscreen)ifr.webkitEnterFullscreen();
+  },
 
   cardHTML(b){
     const [c1,c2]=coverFor(b);
@@ -1983,6 +2141,10 @@ window.App=App;
 
 /* fecha modais com ESC / clique no fundo */
 document.addEventListener("keydown",e=>{
+  if($("videoModal").classList.contains("open")){
+    if(e.key==="Escape")App.closeVideo();
+    return;
+  }
   if($("lightbox").classList.contains("open")){
     if(e.key==="Escape")App.closeLightbox();
     else if(e.key==="ArrowLeft")App.lightboxNav(-1);
@@ -1992,6 +2154,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){App.closeForm();App.closeDetail();App.closeFinish();App.closeRegister();}
 });
 $("lightbox").addEventListener("click",e=>{if(e.target===$("lightbox"))App.closeLightbox();});
+$("videoModal").addEventListener("click",e=>{if(e.target===$("videoModal"))App.closeVideo();});
 $("formScrim").addEventListener("click",e=>{if(e.target===$("formScrim"))App.closeForm();});
 $("detailScrim").addEventListener("click",e=>{if(e.target===$("detailScrim"))App.closeDetail();});
 $("finishScrim").addEventListener("click",e=>{if(e.target===$("finishScrim"))App.closeFinish();});
