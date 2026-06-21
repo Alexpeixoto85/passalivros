@@ -44,6 +44,19 @@
   a{color:inherit}
   :focus-visible{outline:3px solid var(--marigold);outline-offset:2px;border-radius:6px}
 
+  /* ---------- proteção básica de conteúdo ---------- */
+  /* Bloqueia seleção de texto e o menu de "salvar imagem" no toque longo (iOS/Android),
+     mas libera normalmente em campos de formulário, para não quebrar a digitação. */
+  body{
+    -webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;
+    -webkit-touch-callout:none;
+  }
+  input,textarea,[contenteditable="true"]{
+    -webkit-user-select:text;-moz-user-select:text;-ms-user-select:text;user-select:text;
+    -webkit-touch-callout:default;
+  }
+  img{-webkit-user-drag:none;user-drag:none;pointer-events:auto}
+
   /* ---------- header ---------- */
   .topbar{
     position:sticky;top:0;z-index:40;background:rgba(246,242,233,.86);
@@ -2252,6 +2265,40 @@ if(!isConfigured){
     toast("Configuração do Firebase inválida. Revise o firebaseConfig.","bad");
   }
 }
+</script>
+
+<script>
+/* ============================================================
+   Proteção básica de conteúdo (deterrente, não é segurança real)
+   - Bloqueia menu de contexto (clique direito / toque longo)
+   - Bloqueia atalhos comuns de DevTools e "ver código-fonte"
+   - Bloqueia arrastar imagens
+   - Não interfere em cliques, toques, formulários, links nem no
+     funcionamento normal do site.
+   ============================================================ */
+(function(){
+  // Bloqueia o menu de contexto, exceto dentro de campos de texto
+  document.addEventListener("contextmenu", function(e){
+    const tag=(e.target.tagName||"").toLowerCase();
+    const editable=e.target.isContentEditable;
+    if(tag==="input"||tag==="textarea"||editable) return;
+    e.preventDefault();
+  });
+
+  // Bloqueia arrastar imagens (ex.: arrastar para a área de trabalho)
+  document.addEventListener("dragstart", function(e){
+    if((e.target.tagName||"").toLowerCase()==="img") e.preventDefault();
+  });
+
+  // Bloqueia atalhos comuns de inspeção (não impede 100%, é apenas dificultador)
+  document.addEventListener("keydown", function(e){
+    const k=e.key;
+    const ctrl=e.ctrlKey||e.metaKey;
+    if(k==="F12") {e.preventDefault();return;}
+    if(ctrl&&e.shiftKey&&(k==="I"||k==="i"||k==="J"||k==="j"||k==="C"||k==="c")){e.preventDefault();return;}
+    if(ctrl&&(k==="U"||k==="u")){e.preventDefault();return;}
+  });
+})();
 </script>
 </body>
 </html>
