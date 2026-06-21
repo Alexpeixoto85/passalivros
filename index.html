@@ -387,6 +387,10 @@
     </a>
     <div class="nav-actions">
       <span class="cloud-dot" id="cloudDot" title="Conectado à nuvem"><i></i>na nuvem</span>
+      <button class="btn btn-ghost" id="regBtn" onclick="App.openRegister()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+        <span class="lbl" id="regBtnLbl">Cadastrar</span>
+      </button>
       <button class="btn btn-ghost" id="mineBtn" onclick="App.toggleMine()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="lbl">Meus anúncios</span>
@@ -436,7 +440,8 @@ service cloud.firestore {
     }
     match /usuarios/{uid} {
       allow read: if request.auth != null
-                  &amp;&amp; request.auth.token.email == "SEU-EMAIL-DE-ADMIN@exemplo.com";
+                  &amp;&amp; (request.auth.token.email == "SEU-EMAIL-DE-ADMIN@exemplo.com"
+                       || request.auth.uid == uid);
       allow create, update: if request.auth != null &amp;&amp; request.auth.uid == uid;
     }
     match /acessos/{id} {
@@ -454,9 +459,9 @@ service cloud.firestore {
 <section class="hero" id="heroSection">
   <div class="hero-grid">
     <div>
-      <span class="eyebrow"><span class="dot"></span>Fim de ano letivo • economize na lista</span>
-      <h1>O livro do seu filho pode ser <em>a economia</em> de outra família.</h1>
-      <p class="lead">Anuncie os livros que sua casa não usa mais e encontre os da lista do próximo ano. Combina tudo direto no WhatsApp, sem intermediário.</p>
+      <span class="eyebrow"><span class="dot"></span>Livros escolares e de leitura • passe adiante</span>
+      <h1>Os livros parados na sua estante podem ser <em>a próxima leitura</em> de outra família.</h1>
+      <p class="lead">Anuncie livros escolares que sua casa não usa mais — e também romances, técnicos, infantis e de conhecimentos gerais. Combine tudo direto no WhatsApp, sem intermediário.</p>
       <div class="hero-cta">
         <button class="btn btn-primary" onclick="App.openForm()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
@@ -473,7 +478,7 @@ service cloud.firestore {
     <div class="hero-art" aria-hidden="true">
       <div class="bk bk3"><div class="bt">Ciências</div><div class="ba">9º ano</div></div>
       <div class="bk bk1"><div class="bt">Matemática</div><div class="ba">Ensino Fundamental</div></div>
-      <div class="bk bk2"><span class="bk-tape"></span><div class="bt">Português</div><div class="ba">1ª série</div></div>
+      <div class="bk bk2"><span class="bk-tape"></span><div class="bt">Romance</div><div class="ba">Literatura</div></div>
     </div>
   </div>
 </section>
@@ -487,8 +492,14 @@ service cloud.firestore {
     </div>
   </div>
   <div class="filters">
+    <div class="sel"><select id="fCategoria" onchange="App.render()">
+      <option value="">Escolares e gerais</option>
+      <option value="escolar">Só escolares</option>
+      <option value="geral">Só conhecimentos gerais</option>
+    </select></div>
     <div class="sel"><select id="fDisc" onchange="App.render()"><option value="">Todas as disciplinas</option></select></div>
     <div class="sel"><select id="fSerie" onchange="App.render()"><option value="">Todas as séries</option></select></div>
+    <div class="sel hide" id="fGeneroWrap"><select id="fGenero" onchange="App.render()"><option value="">Todos os gêneros</option></select></div>
     <div class="sel"><select id="fTipo" onchange="App.render()">
       <option value="">Venda, troca e doação</option>
       <option value="venda">À venda</option>
@@ -568,7 +579,15 @@ service cloud.firestore {
           </div>
         </div>
 
-        <div class="field row3">
+        <div class="field">
+          <label class="lab">Tipo de livro</label>
+          <div class="seg" id="categoriaSeg">
+            <label><input type="radio" name="categoria" value="escolar" checked onchange="App.onCategoria()"><span class="opt-b">Escolar / didático<small>tem disciplina e série</small></span></label>
+            <label><input type="radio" name="categoria" value="geral" onchange="App.onCategoria()"><span class="opt-b">Conhecimentos gerais<small>romance, técnico, infantil…</small></span></label>
+          </div>
+        </div>
+
+        <div class="field row3" id="escolarFields">
           <div>
             <label class="lab" for="disciplina">Disciplina</label>
             <input class="inp" id="disciplina" list="discList" placeholder="Ex.: Matemática" required>
@@ -595,6 +614,29 @@ service cloud.firestore {
           <div>
             <label class="lab" for="edicao">Edição / Ano <span class="opt">(opcional)</span></label>
             <input class="inp" id="edicao" placeholder="Ex.: 9ª ed.">
+          </div>
+        </div>
+
+        <div class="field row2 hide" id="geralFields">
+          <div>
+            <label class="lab" for="genero">Gênero / categoria</label>
+            <input class="inp" id="genero" list="generoList" placeholder="Ex.: Romance">
+            <datalist id="generoList">
+              <option>Romance</option><option>Conto / Crônica</option><option>Poesia</option>
+              <option>Ficção científica</option><option>Fantasia</option><option>Suspense / Policial</option>
+              <option>Terror</option><option>Aventura</option><option>Biografia / Memórias</option>
+              <option>História</option><option>Autoajuda / Desenvolvimento pessoal</option>
+              <option>Negócios / Finanças</option><option>Técnico / Profissional</option>
+              <option>Concursos / Vestibular</option><option>Idiomas</option>
+              <option>Religião / Espiritualidade</option><option>Filosofia</option>
+              <option>Saúde / Bem-estar</option><option>Culinária</option><option>Arte / Design</option>
+              <option>Infantil</option><option>Juvenil</option><option>HQ / Mangá / Graphic novel</option>
+              <option>Didático / Universitário</option><option>Outros</option>
+            </datalist>
+          </div>
+          <div>
+            <label class="lab" for="edicaoG">Edição / Ano <span class="opt">(opcional)</span></label>
+            <input class="inp" id="edicaoG" placeholder="Ex.: 2ª ed., 2021">
           </div>
         </div>
 
@@ -644,6 +686,7 @@ service cloud.firestore {
 
         <hr style="border:none;border-top:1px solid var(--line);margin:6px 0 18px">
 
+        <div class="help-txt" id="contatoHint" style="margin:0 0 12px">Dados de contato puxados do seu cadastro — você pode ajustar para este anúncio.</div>
         <div class="field row2">
           <div>
             <label class="lab" for="nome">Seu nome</label>
@@ -655,8 +698,8 @@ service cloud.firestore {
           </div>
         </div>
         <div class="field">
-          <label class="lab" for="cidade">Bairro / Escola / Cidade <span class="opt">(opcional)</span></label>
-          <input class="inp" id="cidade" placeholder="Ex.: Colégio São José — Pinheiros, SP">
+          <label class="lab" for="cidade">Bairro / Cidade <span class="opt">(ou escola — opcional)</span></label>
+          <input class="inp" id="cidade" placeholder="Ex.: Pinheiros, SP — ou Colégio São José">
         </div>
 
         <div class="err" id="formErr"></div>
@@ -664,6 +707,38 @@ service cloud.firestore {
         <div class="form-foot">
           <button type="button" class="btn btn-ghost" onclick="App.closeForm()">Cancelar</button>
           <button type="submit" class="btn btn-primary" id="saveBtn">Publicar anúncio</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- =============== MODAL: CADASTRO =============== -->
+<div class="scrim" id="regScrim">
+  <div class="modal" style="max-width:480px" role="dialog" aria-modal="true" aria-labelledby="regTitle">
+    <div class="modal-head">
+      <h2 id="regTitle">Criar seu cadastro</h2>
+      <button class="xclose" onclick="App.closeRegister()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--ink-soft);margin:0 0 18px;font-size:14.5px" id="regSub">Para anunciar no PassaLivro, faça um cadastro rápido. Seus dados ficam guardados para os próximos anúncios.</p>
+      <form id="regForm" onsubmit="App.saveRegister(event)">
+        <div class="field">
+          <label class="lab" for="regNome">Seu nome</label>
+          <input class="inp" id="regNome" placeholder="Ex.: Ana Souza" required>
+        </div>
+        <div class="field">
+          <label class="lab" for="regWhats">WhatsApp (com DDD)</label>
+          <input class="inp" id="regWhats" type="tel" placeholder="Ex.: (11) 99876-5432" required>
+        </div>
+        <div class="field">
+          <label class="lab" for="regEmail">E-mail</label>
+          <input class="inp" id="regEmail" type="email" placeholder="voce@exemplo.com" required>
+        </div>
+        <div class="err" id="regErr"></div>
+        <div class="form-foot">
+          <button type="button" class="btn btn-ghost" onclick="App.closeRegister()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="regSaveBtn">Concluir cadastro</button>
         </div>
       </form>
     </div>
@@ -737,6 +812,8 @@ let editingId=null;
 let showMine=false;
 let detailBook=null, galIndex=0;
 let finishingId=null;
+let USER_PROFILE=null;       // perfil do usuário cadastrado (nome, whatsapp, email)
+let pendingFormBook=undefined; // anúncio aguardando cadastro antes de abrir o form
 
 const $=id=>document.getElementById(id);
 const COVER_PALETTE=[
@@ -780,20 +857,46 @@ function isExpired(b){
 function activeCount(ownerUid){
   return BOOKS.filter(b=>b.ownerId===ownerUid&&b.status!=="finalizado").length;
 }
+/* registra 1 acesso por usuário por dia (vale para qualquer visitante) */
 async function trackAccess(uidVal){
-  // registra o usuário (1x) e atualiza o último acesso
-  try{
-    const uref=doc(db,"usuarios",uidVal);
-    const usnap=await getDoc(uref);
-    if(!usnap.exists())await setDoc(uref,{criadoEm:serverTimestamp(),ultimoAcesso:serverTimestamp()});
-    else await updateDoc(uref,{ultimoAcesso:serverTimestamp()});
-  }catch(e){console.warn("usuarios:",e);}
-  // registra 1 acesso do dia (idempotente — 1 doc por usuário por dia)
   try{
     const ds=dateStr();
     await setDoc(doc(db,"acessos",`${ds}_${uidVal}`),{data:ds,uid:uidVal,ts:serverTimestamp()},{merge:true});
   }catch(e){console.warn("acessos:",e);}
 }
+/* carrega o perfil cadastrado do usuário (se existir) */
+async function loadProfile(uidVal){
+  try{
+    const snap=await getDoc(doc(db,"usuarios",uidVal));
+    if(snap.exists()&&snap.data().cadastrado){
+      USER_PROFILE=snap.data();
+      localStorage.setItem("pl_cadastrado","1");
+      if(USER_PROFILE.nome)localStorage.setItem("pl_nome",USER_PROFILE.nome);
+      if(USER_PROFILE.whatsapp)localStorage.setItem("pl_whats",USER_PROFILE.whatsapp);
+      if(USER_PROFILE.email)localStorage.setItem("pl_email",USER_PROFILE.email);
+    }
+  }catch(e){
+    /* a leitura pode estar bloqueada pelas regras — usamos o cadastro local como reserva */
+    console.warn("perfil:",e);
+    if(localStorage.getItem("pl_cadastrado")==="1"){
+      USER_PROFILE={
+        nome:localStorage.getItem("pl_nome")||"",
+        whatsapp:localStorage.getItem("pl_whats")||"",
+        email:localStorage.getItem("pl_email")||"",
+        cadastrado:true
+      };
+    }
+  }
+  // se já cadastrado, atualiza o último acesso no perfil
+  if(isRegistered()){
+    try{await setDoc(doc(db,"usuarios",uidVal),{ultimoAcesso:serverTimestamp()},{merge:true});}catch(e){}
+  }
+  App.updateRegBtn();
+}
+function isRegistered(){
+  return !!(USER_PROFILE&&USER_PROFILE.cadastrado)||localStorage.getItem("pl_cadastrado")==="1";
+}
+function isValidEmail(s){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim());}
 
 /* ---------------- toast ---------------- */
 function toast(msg,kind="",icon=""){
@@ -836,9 +939,78 @@ const App={
   scrollToTop(){window.scrollTo({top:0,behavior:"smooth"});},
   scrollToList(){$("listTop").scrollIntoView({behavior:"smooth",block:"start"});},
 
+  /* ---------- cadastro de usuário ---------- */
+  updateRegBtn(){
+    const lbl=$("regBtnLbl");if(!lbl)return;
+    if(isRegistered()){
+      const first=((USER_PROFILE&&USER_PROFILE.nome)||localStorage.getItem("pl_nome")||"").split(" ")[0];
+      lbl.textContent=first?`Olá, ${first}`:"Meu cadastro";
+      $("regBtn").title="Ver / editar meu cadastro";
+    }else{
+      lbl.textContent="Cadastrar";
+      $("regBtn").title="Criar cadastro para anunciar";
+    }
+  },
+  openRegister(afterCb){
+    if(!isConfigured){toast("Configure o Firebase para se cadastrar (veja o passo a passo no topo).","bad");return;}
+    pendingFormBook=undefined;
+    this._afterRegister=(typeof afterCb==="function")?afterCb:null;
+    const editing=isRegistered();
+    $("regTitle").textContent=editing?"Meu cadastro":"Criar seu cadastro";
+    $("regSub").textContent=editing
+      ? "Atualize seus dados. Eles são usados como contato nos seus anúncios."
+      : "Para anunciar no PassaLivro, faça um cadastro rápido. Seus dados ficam guardados para os próximos anúncios.";
+    $("regSaveBtn").textContent=editing?"Salvar cadastro":"Concluir cadastro";
+    $("regNome").value=(USER_PROFILE&&USER_PROFILE.nome)||localStorage.getItem("pl_nome")||"";
+    $("regWhats").value=(USER_PROFILE&&USER_PROFILE.whatsapp)||localStorage.getItem("pl_whats")||"";
+    $("regEmail").value=(USER_PROFILE&&USER_PROFILE.email)||localStorage.getItem("pl_email")||"";
+    $("regErr").classList.remove("show");
+    $("regScrim").classList.add("open");document.body.style.overflow="hidden";
+    setTimeout(()=>$("regNome").focus(),60);
+  },
+  closeRegister(){$("regScrim").classList.remove("open");document.body.style.overflow="";this._afterRegister=null;},
+  regError(msg){const el=$("regErr");el.textContent=msg;el.classList.add("show");},
+  async saveRegister(e){
+    e.preventDefault();
+    const nome=$("regNome").value.trim();
+    const whatsapp=$("regWhats").value.trim();
+    const email=$("regEmail").value.trim();
+    if(!nome)return this.regError("Informe seu nome.");
+    if(normalizePhone(whatsapp).length<12)return this.regError("Informe um WhatsApp válido com DDD.");
+    if(!isValidEmail(email))return this.regError("Informe um e-mail válido.");
+    $("regSaveBtn").disabled=true;$("regSaveBtn").textContent="Salvando…";
+    const novo=!isRegistered();
+    try{
+      const payload={nome,whatsapp,email,cadastrado:true,ultimoAcesso:serverTimestamp()};
+      if(novo)payload.cadastradoEm=serverTimestamp();
+      await setDoc(doc(db,"usuarios",uid),payload,{merge:true});
+      USER_PROFILE={...(USER_PROFILE||{}),nome,whatsapp,email,cadastrado:true};
+      localStorage.setItem("pl_cadastrado","1");
+      localStorage.setItem("pl_nome",nome);
+      localStorage.setItem("pl_whats",whatsapp);
+      localStorage.setItem("pl_email",email);
+      this.updateRegBtn();
+      toast(novo?"Cadastro concluído! Agora você pode anunciar.":"Cadastro atualizado.","ok");
+      const cb=this._afterRegister;
+      this.closeRegister();
+      if(cb)cb();
+    }catch(err){
+      console.error(err);
+      this.regError("Não foi possível salvar o cadastro. Verifique sua conexão e as regras do Firestore.");
+    }finally{
+      $("regSaveBtn").disabled=false;
+      $("regSaveBtn").textContent=novo?"Concluir cadastro":"Salvar cadastro";
+    }
+  },
+
   /* ---------- form ---------- */
   openForm(book=null){
     if(!isConfigured){toast("Configure o Firebase para publicar (veja o passo a passo no topo).","bad");return;}
+    if(!isRegistered()){
+      toast("Faça um cadastro rápido para anunciar.","");
+      this.openRegister(()=>this.openForm(book));
+      return;
+    }
     editingId=book?book.id:null;
     pendingPhotos=book?[...(book.fotos||[])]:[];
     $("formTitle").textContent=book?"Editar anúncio":"Anunciar um livro";
@@ -850,15 +1022,18 @@ const App={
     $("disciplina").value=book?.disciplina||"";
     $("serie").value=book?.serie||"";
     $("edicao").value=book?.edicao||"";
+    $("genero").value=book?.genero||"";
+    $("edicaoG").value=book?.edicao||"";
     $("descricao").value=book?.descricao||"";
     $("preco").value=book?.preco??"";
     $("trocaPor").value=book?.trocaPor||"";
-    $("nome").value=book?.nome||localStorage.getItem("pl_nome")||"";
-    $("whats").value=book?.whatsapp||localStorage.getItem("pl_whats")||"";
+    $("nome").value=book?.nome||(USER_PROFILE&&USER_PROFILE.nome)||localStorage.getItem("pl_nome")||"";
+    $("whats").value=book?.whatsapp||(USER_PROFILE&&USER_PROFILE.whatsapp)||localStorage.getItem("pl_whats")||"";
     $("cidade").value=book?.cidade||localStorage.getItem("pl_cidade")||"";
     (document.querySelector(`#estadoSeg input[value="${book?.estado||'Seminovo'}"]`)||{}).checked=true;
     (document.querySelector(`#tipoSeg input[value="${book?.tipo||'venda'}"]`)||{}).checked=true;
-    this.onTipo();this.renderThumbs();
+    (document.querySelector(`#categoriaSeg input[value="${book?.categoria||'escolar'}"]`)||{}).checked=true;
+    this.onCategoria();this.onTipo();this.renderThumbs();
     $("formErr").classList.remove("show");
     $("formScrim").classList.add("open");document.body.style.overflow="hidden";
     setTimeout(()=>$("titulo").focus(),60);
@@ -868,6 +1043,16 @@ const App={
     const t=document.querySelector('#tipoSeg input:checked').value;
     $("precoField").classList.toggle("hide",t!=="venda");
     $("trocaField").classList.toggle("hide",t!=="troca");
+  },
+  onCategoria(){
+    const c=document.querySelector('#categoriaSeg input:checked').value;
+    const escolar=c==="escolar";
+    $("escolarFields").classList.toggle("hide",!escolar);
+    $("geralFields").classList.toggle("hide",escolar);
+    // campos required só valem quando visíveis (escondidos com required travam o submit)
+    $("disciplina").required=escolar;
+    $("serie").required=escolar;
+    $("genero").required=!escolar;
   },
   async addPhotos(e){
     const files=[...e.target.files];e.target.value="";
@@ -888,7 +1073,14 @@ const App={
   async saveBook(e){
     e.preventDefault();
     const tipo=document.querySelector('#tipoSeg input:checked').value;
+    const categoria=document.querySelector('#categoriaSeg input:checked').value;
     const preco=parseFloat($("preco").value||"0");
+    if(categoria==="escolar"){
+      if(!$("disciplina").value.trim())return this.formError("Informe a disciplina do livro escolar.");
+      if(!$("serie").value.trim())return this.formError("Informe a série / ano do livro escolar.");
+    }else{
+      if(!$("genero").value.trim())return this.formError("Informe o gênero / categoria do livro.");
+    }
     if(tipo==="venda"&&(!preco||preco<=0)){return this.formError("Informe um preço maior que zero para venda.");}
     if(tipo==="troca"&&!$("trocaPor").value.trim()){return this.formError("Diga o que você aceita em troca.");}
     if(!editingId&&CONFIG.limiteAnuncios>0&&activeCount(uid)>=CONFIG.limiteAnuncios){
@@ -899,9 +1091,11 @@ const App={
       titulo:$("titulo").value.trim(),
       autor:$("autor").value.trim(),
       editora:$("editora").value.trim(),
-      disciplina:$("disciplina").value.trim(),
-      serie:$("serie").value.trim(),
-      edicao:$("edicao").value.trim(),
+      categoria,
+      disciplina:categoria==="escolar"?$("disciplina").value.trim():"",
+      serie:categoria==="escolar"?$("serie").value.trim():"",
+      genero:categoria==="geral"?$("genero").value.trim():"",
+      edicao:(categoria==="escolar"?$("edicao").value:$("edicaoG").value).trim(),
       estado:document.querySelector('#estadoSeg input:checked').value,
       tipo,
       preco:tipo==="venda"?preco:0,
@@ -967,31 +1161,41 @@ const App={
 
   /* ---------- filters ---------- */
   toggleMine(){showMine=!showMine;$("mineBtn").classList.toggle("active",showMine);this.render();this.scrollToList();},
-  clearFilters(){["q","fDisc","fSerie","fTipo","fEstado"].forEach(id=>$(id).value="");$("fSort").value="recent";this.render();},
+  clearFilters(){["q","fCategoria","fDisc","fSerie","fGenero","fTipo","fEstado"].forEach(id=>$(id).value="");$("fSort").value="recent";this.render();},
 
   populateFilters(){
-    const discs=[...new Set(BOOKS.map(b=>b.disciplina).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
-    const series=[...new Set(BOOKS.map(b=>b.serie).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt",{numeric:true}));
+    const escolares=BOOKS.filter(b=>(b.categoria||"escolar")==="escolar");
+    const gerais=BOOKS.filter(b=>b.categoria==="geral");
+    const discs=[...new Set(escolares.map(b=>b.disciplina).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
+    const series=[...new Set(escolares.map(b=>b.serie).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt",{numeric:true}));
+    const generos=[...new Set(gerais.map(b=>b.genero).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));
     const keep=(sel,vals,first)=>{const cur=sel.value;sel.innerHTML=`<option value="">${first}</option>`+vals.map(v=>`<option ${v===cur?"selected":""}>${escapeHtml(v)}</option>`).join("");};
     keep($("fDisc"),discs,"Todas as disciplinas");
     keep($("fSerie"),series,"Todas as séries");
+    keep($("fGenero"),generos,"Todos os gêneros");
+    // mostra o filtro de gênero só quando há livros gerais
+    $("fGeneroWrap").classList.toggle("hide",generos.length===0);
   },
 
   filtered(){
     const q=$("q").value.trim().toLowerCase();
-    const fD=$("fDisc").value,fS=$("fSerie").value,fT=$("fTipo").value,fE=$("fEstado").value,sort=$("fSort").value;
+    const fC=$("fCategoria").value,fD=$("fDisc").value,fS=$("fSerie").value,fG=$("fGenero").value;
+    const fT=$("fTipo").value,fE=$("fEstado").value,sort=$("fSort").value;
     let list=BOOKS.filter(b=>{
+      const cat=b.categoria||"escolar";
       if(showMine){
         if(b.ownerId!==uid)return false;
       }else{
         if(b.ownerId!==uid&&b.status==="finalizado")return false;
         if(b.ownerId!==uid&&isExpired(b))return false;
       }
+      if(fC&&cat!==fC)return false;
       if(fD&&b.disciplina!==fD)return false;
       if(fS&&b.serie!==fS)return false;
+      if(fG&&b.genero!==fG)return false;
       if(fT&&b.tipo!==fT)return false;
       if(fE&&b.estado!==fE)return false;
-      if(q){const blob=`${b.titulo} ${b.autor} ${b.disciplina} ${b.editora} ${b.serie}`.toLowerCase();if(!blob.includes(q))return false;}
+      if(q){const blob=`${b.titulo} ${b.autor} ${b.disciplina} ${b.editora} ${b.serie} ${b.genero||""}`.toLowerCase();if(!blob.includes(q))return false;}
       return true;
     });
     if(sort==="priceA")list.sort((a,b)=>(a.tipo==="venda"?a.preco:1e12)-(b.tipo==="venda"?b.preco:1e12));
@@ -1004,7 +1208,7 @@ const App={
     if(!isConfigured)return;
     this.populateFilters();
     const list=this.filtered();
-    const anyFilter=$("q").value||$("fDisc").value||$("fSerie").value||$("fTipo").value||$("fEstado").value;
+    const anyFilter=$("q").value||$("fCategoria").value||$("fDisc").value||$("fSerie").value||$("fGenero").value||$("fTipo").value||$("fEstado").value;
     $("clearF").classList.toggle("show",!!anyFilter||$("fSort").value!=="recent");
 
     // stats (sobre os livros disponíveis — sem contar finalizados/expirados)
@@ -1162,13 +1366,15 @@ const App={
 
   cardHTML(b){
     const [c1,c2]=coverFor(b);
+    const isGeral=b.categoria==="geral";
+    const subAssunto=isGeral?(b.genero||""):`${b.disciplina||""}${b.serie?" · "+b.serie:""}`;
     const cover=b.fotos&&b.fotos.length
       ? `<img src="${b.fotos[0]}" alt="${escapeHtml(b.titulo)}" loading="lazy">
          ${b.fotos.length>1?`<span class="photocount"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>${b.fotos.length}</span>`:""}`
       : `<div class="cover-gen" style="background:linear-gradient(150deg,${c1},${c2})">
            <svg class="cg-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6"><path d="M3 4.5C3 4.5 6 3.2 9 4.2C11 4.9 12 6 12 6V20C12 20 11 18.9 9 18.2C6 17.2 3 18.5 3 18.5V4.5Z"/><path d="M21 4.5C21 4.5 18 3.2 15 4.2C13 4.9 12 6 12 6V20C12 20 13 18.9 15 18.2C18 17.2 21 18.5 21 18.5V4.5Z"/></svg>
            <div class="cg-t">${escapeHtml(b.titulo)}</div>
-           <div class="cg-a">${escapeHtml(b.disciplina||"")}${b.serie?" · "+escapeHtml(b.serie):""}</div>
+           <div class="cg-a">${escapeHtml(subAssunto)}</div>
          </div>`;
     const priceHTML=b.tipo==="venda"
       ? `<div class="price">R$ ${brl(b.preco)}</div>`
@@ -1205,8 +1411,10 @@ const App={
           <h3>${escapeHtml(b.titulo)}</h3>
           ${b.autor?`<div class="card-author">${escapeHtml(b.autor)}</div>`:""}
           <div class="meta">
-            ${b.disciplina?`<span class="chip">${escapeHtml(b.disciplina)}</span>`:""}
-            ${b.serie?`<span class="chip">${escapeHtml(b.serie)}</span>`:""}
+            ${isGeral
+              ? (b.genero?`<span class="chip">${escapeHtml(b.genero)}</span>`:"")
+              : `${b.disciplina?`<span class="chip">${escapeHtml(b.disciplina)}</span>`:""}
+                 ${b.serie?`<span class="chip">${escapeHtml(b.serie)}</span>`:""}`}
             <span class="chip">${escapeHtml(b.estado)}</span>
           </div>
         </div>
@@ -1237,6 +1445,8 @@ const App={
   },
   detailHTML(b){
     const [c1,c2]=coverFor(b);
+    const isGeral=b.categoria==="geral";
+    const subAssunto=isGeral?(b.genero||""):`${b.disciplina||""}${b.serie?" · "+b.serie:""}`;
     const gallery=b.fotos&&b.fotos.length
       ? `<div class="detail-gallery">
            <img src="${b.fotos[0]}" alt="${escapeHtml(b.titulo)}">
@@ -1247,12 +1457,15 @@ const App={
          </div>`
       : `<div class="detail-gallery"><div class="cover-gen" style="background:linear-gradient(150deg,${c1},${c2});min-height:100%">
            <div class="cg-t" style="font-size:26px">${escapeHtml(b.titulo)}</div>
-           <div class="cg-a">${escapeHtml(b.disciplina||"")}${b.serie?" · "+escapeHtml(b.serie):""}</div></div></div>`;
+           <div class="cg-a">${escapeHtml(subAssunto)}</div></div></div>`;
     const priceBlock=b.tipo==="venda"?`<div class="detail-price">R$ ${brl(b.preco)}</div>`
       :b.tipo==="troca"?`<div class="detail-price" style="color:var(--trade);font-size:22px">Aberto a troca</div>`
       :`<div class="detail-price" style="color:var(--doa);font-size:22px">Doação — gratuito</div>`;
     const rows=[
-      ["Disciplina",b.disciplina],["Série / Ano",b.serie],["Autor",b.autor],
+      isGeral?["Gênero / categoria",b.genero]:null,
+      isGeral?null:["Disciplina",b.disciplina],
+      isGeral?null:["Série / Ano",b.serie],
+      ["Autor",b.autor],
       ["Editora",b.editora],["Edição",b.edicao],["Conservação",b.estado],
       b.tipo==="troca"?["Aceita em troca",b.trocaPor]:null,
       ["Anunciante",b.nome],["Local",b.cidade]
@@ -1300,10 +1513,11 @@ const App={
 window.App=App;
 
 /* fecha modais com ESC / clique no fundo */
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){App.closeForm();App.closeDetail();App.closeFinish();}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){App.closeForm();App.closeDetail();App.closeFinish();App.closeRegister();}});
 $("formScrim").addEventListener("click",e=>{if(e.target===$("formScrim"))App.closeForm();});
 $("detailScrim").addEventListener("click",e=>{if(e.target===$("detailScrim"))App.closeDetail();});
 $("finishScrim").addEventListener("click",e=>{if(e.target===$("finishScrim"))App.closeFinish();});
+$("regScrim").addEventListener("click",e=>{if(e.target===$("regScrim"))App.closeRegister();});
 
 /* ============================================================
    Boot
@@ -1333,6 +1547,7 @@ if(!isConfigured){
       if(user){
         uid=user.uid;
         trackAccess(uid);
+        loadProfile(uid);
         const qy=query(colRef,orderBy("createdAt","desc"));
         onSnapshot(qy,snap=>{
           BOOKS=snap.docs.map(d=>{
