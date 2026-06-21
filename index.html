@@ -458,6 +458,69 @@
     .grid{grid-template-columns:1fr 1fr;gap:10px}
     .card-body h3{font-size:13.5px}
   }
+  /* ---------- bottom nav (mobile app-style) ---------- */
+  .bottom-nav{display:none}
+
+  @media(max-width:700px){
+    /* clean up the top bar: keep brand + account only, move the rest to the bottom nav */
+    #favBtn,#mineBtn,#addBtnTop{display:none!important}
+    body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+
+    .bottom-nav{
+      position:fixed;left:0;right:0;bottom:0;z-index:50;
+      display:flex;align-items:flex-end;justify-content:space-around;
+      background:rgba(251,248,241,.92);backdrop-filter:saturate(180%) blur(16px);
+      border-top:1px solid var(--line);
+      padding:7px 2px calc(7px + env(safe-area-inset-bottom));
+      box-shadow:0 -8px 26px rgba(23,63,59,.10);
+    }
+    .bn-item{
+      background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+      color:var(--ink-soft);font-size:10px;font-weight:600;padding:6px 2px;flex:1;
+      border-radius:12px;position:relative;min-width:0;
+    }
+    .bn-item svg{width:21px;height:21px}
+    .bn-item.active{color:var(--ink)}
+    .bn-item.active svg{color:var(--marigold);stroke:var(--marigold)}
+    .bn-add{margin-top:-30px;flex:1.1}
+    .bn-add-circle{
+      width:52px;height:52px;border-radius:50%;background:var(--ink);color:#fff;
+      display:grid;place-items:center;box-shadow:var(--shadow-lg);margin-bottom:3px;
+      border:4px solid var(--paper);
+    }
+    .bn-add-circle svg{width:23px;height:23px;color:#fff;stroke:#fff}
+    .bn-add span:last-child{color:var(--ink);font-weight:700}
+    .bn-badge{position:absolute;top:-2px;right:20%;min-width:16px;height:16px;padding:0 3px;
+      border-radius:9px;background:var(--danger);color:#fff;font-size:9.5px;font-weight:700;
+      display:grid;place-items:center;line-height:1}
+
+    /* ---------- compact, modern hero ---------- */
+    .hero{padding:16px 16px 0}
+    .eyebrow{font-size:11px;padding:5px 10px;margin-bottom:12px;gap:6px}
+    .hero h1{font-size:25px;letter-spacing:-.5px}
+    .hero p.lead{font-size:14.5px;margin:10px 0 16px;
+      display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .hero-cta{gap:10px;flex-wrap:nowrap}
+    .hero-cta .btn{flex:1;justify-content:center;padding:13px 10px;font-size:13.5px}
+    .stats{margin-top:18px;gap:0;background:var(--surface);border:1px solid var(--line);
+      border-radius:14px;padding:14px 4px;box-shadow:var(--shadow)}
+    .stat{flex:1;text-align:center;position:relative}
+    .stat:not(:last-child)::after{content:"";position:absolute;right:0;top:4px;bottom:4px;width:1px;background:var(--line)}
+    .stat .n{font-size:20px}
+    .stat .l{font-size:10px;line-height:1.25}
+
+    /* ---------- search + filters: compact, swipeable pills ---------- */
+    .controls{padding:18px 14px 0}
+    .search input{padding:13px 16px 13px 42px;border-radius:14px;font-size:14.5px}
+    .filters{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+      scrollbar-width:none;gap:8px;margin:12px -14px 0;padding:0 14px 4px}
+    .filters::-webkit-scrollbar{display:none}
+    .filters .sel{flex:none}
+    .filters select{font-size:12.5px;padding:9px 28px 9px 13px;border-radius:30px;white-space:nowrap}
+    .filters .price-in{width:88px;border-radius:30px}
+    .filters .clearf{flex:none}
+  }
+
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -480,22 +543,49 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
         <span class="lbl" id="regBtnLbl">Cadastrar</span>
       </button>
-      <button class="btn btn-ghost" id="favBtn" onclick="App.toggleFavsView()" title="Meus favoritos" style="position:relative">
+      <button class="btn btn-ghost" id="favBtn" data-nav="favs" onclick="App.toggleFavsView()" title="Meus favoritos" style="position:relative">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
         <span class="lbl">Favoritos</span>
-        <span class="fav-count hide" id="favCount">0</span>
+        <span class="fav-count hide favCountEl" id="favCount">0</span>
       </button>
-      <button class="btn btn-ghost" id="mineBtn" onclick="App.toggleMine()">
+      <button class="btn btn-ghost" id="mineBtn" data-nav="mine" onclick="App.toggleMine()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="lbl">Meus anúncios</span>
       </button>
-      <button class="btn btn-primary" onclick="App.openForm()">
+      <button class="btn btn-primary" id="addBtnTop" onclick="App.openForm()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
         <span class="lbl">Anunciar livro</span>
       </button>
     </div>
   </div>
 </header>
+
+<!-- ---------- BOTTOM NAV (somente celular) ---------- -->
+<nav class="bottom-nav" id="bottomNav" aria-label="Navegação principal">
+  <button class="bn-item" data-nav="home" onclick="App.goHome()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>
+    <span>Início</span>
+  </button>
+  <button class="bn-item" data-nav="search" onclick="App.scrollToList()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <span>Buscar</span>
+  </button>
+  <button class="bn-item bn-add" onclick="App.openForm()" aria-label="Anunciar livro">
+    <span class="bn-add-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+    </span>
+    <span>Anunciar</span>
+  </button>
+  <button class="bn-item" data-nav="favs" onclick="App.toggleFavsView()" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+    <span class="fav-count hide favCountEl bn-badge" id="favCountBn">0</span>
+    <span>Favoritos</span>
+  </button>
+  <button class="bn-item" data-nav="mine" onclick="App.toggleMine()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>
+    <span>Meus livros</span>
+  </button>
+</nav>
 
 <!-- SETUP (mostrado só quando o Firebase não está configurado) -->
 <section class="setup hide" id="setupCard">
@@ -987,6 +1077,7 @@ let listenersReady=false;    // evita reassinar os snapshots
 const EMAIL_DOMAIN="passalivro.app"; // domínio sintético: o telefone é o "usuário"
 
 const $=id=>document.getElementById(id);
+const setNav=(name,on)=>document.querySelectorAll(`[data-nav="${name}"]`).forEach(el=>el.classList.toggle("active",on));
 const COVER_PALETTE=[
   ["#1d5450","#173F3B"],["#e6a443","#cf7f25"],["#358a6c","#256f54"],
   ["#3b6ea5","#2b5483"],["#a8556b","#8a3f53"],["#6b5b95","#4f4373"],
@@ -1096,7 +1187,7 @@ function compress(file){
    App
    ============================================================ */
 const App={
-  goHome(){showMine=false;showFavs=false;$("mineBtn").classList.remove("active");this.updateRegBtn();this.scrollToTop();this.render();},
+  goHome(){showMine=false;showFavs=false;setNav("mine",false);setNav("favs",false);this.updateRegBtn();this.scrollToTop();this.render();},
   scrollToTop(){window.scrollTo({top:0,behavior:"smooth"});},
   scrollToList(){$("listTop").scrollIntoView({behavior:"smooth",block:"start"});},
 
@@ -1114,7 +1205,8 @@ const App={
       btn.title="Entrar ou criar conta";btn.setAttribute("aria-label","Entrar");
     }
     // botão de favoritos
-    const fav=$("favBtn");if(fav)fav.classList.toggle("active",showFavs);
+    setNav("favs",showFavs);
+    setNav("home",!showFavs&&!showMine);
   },
   // ponto de entrada do botão "Entrar / Minha conta"
   openRegister(afterCb){
@@ -1251,7 +1343,7 @@ const App={
     try{
       await signOut(auth);
       USER_PROFILE=null;FAVS=new Set();showMine=false;showFavs=false;
-      $("mineBtn").classList.remove("active");
+      setNav("mine",false);
       this.updateRegBtn();
       toast("Você saiu da sua conta.","ok");
       this.closeRegister();
@@ -1295,16 +1387,16 @@ const App={
     document.querySelectorAll(`.fav-btn[data-id="${id}"]`).forEach(b=>b.classList.toggle("on",FAVS.has(id)));
   },
   updateFavCount(){
-    const el=$("favCount");if(!el)return;
-    const n=FAVS.size;el.textContent=n;el.classList.toggle("hide",n===0);
+    const n=FAVS.size;
+    document.querySelectorAll(".favCountEl").forEach(el=>{el.textContent=n;el.classList.toggle("hide",n===0);});
   },
   toggleFavsView(){
     if(!isRegistered()){
       toast("Entre na sua conta para ver seus favoritos.","");
-      this.openRegister(()=>{showFavs=true;showMine=false;$("mineBtn").classList.remove("active");this.updateRegBtn();this.render();this.scrollToList();});
+      this.openRegister(()=>{showFavs=true;showMine=false;setNav("mine",false);this.updateRegBtn();this.render();this.scrollToList();});
       return;
     }
-    showFavs=!showFavs;if(showFavs){showMine=false;$("mineBtn").classList.remove("active");}
+    showFavs=!showFavs;if(showFavs){showMine=false;setNav("mine",false);}
     this.updateRegBtn();this.render();this.scrollToList();
   },
 
@@ -1477,7 +1569,7 @@ const App={
   },
 
   /* ---------- filters ---------- */
-  toggleMine(){showMine=!showMine;if(showMine)showFavs=false;$("mineBtn").classList.toggle("active",showMine);this.updateRegBtn();this.render();this.scrollToList();},
+  toggleMine(){showMine=!showMine;if(showMine)showFavs=false;setNav("mine",showMine);this.updateRegBtn();this.render();this.scrollToList();},
   clearFilters(){["q","fCategoria","fDisc","fSerie","fGenero","fTipo","fEstado"].forEach(id=>$(id).value="");$("fSort").value="recent";this.render();},
 
   populateFilters(){
