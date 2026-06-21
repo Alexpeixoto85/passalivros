@@ -459,6 +459,14 @@
     .hero-art{display:none}
     .hero{padding-top:30px}
   }
+  /* ----- faixa de tablet: cabeçalho compacto em uma linha alinhada ----- */
+  @media(min-width:701px) and (max-width:900px){
+    .brand{flex:none}                       /* a marca não é mais espremida */
+    .brand-tag{display:none}                /* evita a quebra em 3 linhas que estica a barra */
+    .nav-actions{gap:8px;flex-wrap:nowrap}
+    .nav-actions .btn{padding:10px 13px;font-size:13.5px}
+    .nav-actions .btn svg{width:16px;height:16px}
+  }
   @media(max-width:560px){
     .brand-tag{display:none}
     .cloud-dot{display:none}
