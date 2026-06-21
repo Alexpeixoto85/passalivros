@@ -1052,9 +1052,41 @@ const App={
     return Date.now() <= ts;
   },
 
+  overlayPosStyle(pos){
+    const map={
+      "top-left":   "top:12px;left:14px;text-align:left;",
+      "top-center": "top:12px;left:50%;transform:translateX(-50%);text-align:center;",
+      "top-right":  "top:12px;right:14px;text-align:right;",
+      "mid-left":   "top:50%;left:14px;transform:translateY(-50%);text-align:left;",
+      "mid-center": "top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;",
+      "mid-right":  "top:50%;right:14px;transform:translateY(-50%);text-align:right;",
+      "bot-left":   "bottom:14px;left:14px;text-align:left;",
+      "bot-center": "bottom:14px;left:50%;transform:translateX(-50%);text-align:center;",
+      "bot-right":  "bottom:14px;right:14px;text-align:right;",
+    };
+    return map[pos]||map["mid-center"];
+  },
+  adOverlayHTML(a){
+    if(!a.imagem||(!a.overlayTitulo&&!a.overlaySub)) return "";
+    const size=Math.min(72,Math.max(12,a.overlaySize||28));
+    const subSize=Math.round(size*0.6);
+    const font=escapeHtml(a.overlayFont||"DM Sans");
+    const color=escapeHtml(a.overlayColor||"#ffffff");
+    const subColor=escapeHtml(a.overlaySubColor||"#f0f0f0");
+    const fw=a.overlayBold?700:400;
+    const fwSub=a.overlayBold?600:400;
+    const fs=a.overlayItalic?"italic":"normal";
+    const shadow=a.overlayShadow!==false?"text-shadow:1px 2px 8px rgba(0,0,0,.7),0 0 20px rgba(0,0,0,.4)":"";
+    const posStyle=this.overlayPosStyle(a.overlayPos||"mid-center");
+    const titleHTML=a.overlayTitulo
+      ? `<div style="font-size:${size}px;color:${color};font-weight:${fw};font-style:${fs};line-height:1.2;${shadow}">${escapeHtml(a.overlayTitulo)}</div>` : "";
+    const subHTML=a.overlaySub
+      ? `<div style="font-size:${subSize}px;color:${subColor};font-weight:${fwSub};font-style:${fs};margin-top:4px;${shadow}">${escapeHtml(a.overlaySub)}</div>` : "";
+    return `<div style="position:absolute;z-index:2;max-width:75%;line-height:1.25;pointer-events:none;word-break:break-word;font-family:'${font}',sans-serif;${posStyle}">${titleHTML}${subHTML}</div>`;
+  },
   adSlideHTML(a, idx, total){
     const inner=a.imagem
-      ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy">`
+      ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy">${this.adOverlayHTML(a)}`
       : `<div class="at">${escapeHtml(a.titulo||'Seu anúncio aqui')}</div>${a.descricao?`<div class="ad-cta">${escapeHtml(a.descricao)}</div>`:''}`;
     const cls=`ad-slide${a.imagem?'':' no-img'}${idx===0?' active':''}`;
     return `<a class="${cls}" data-idx="${idx}" ${this.adHref(a)} ${this.adClickAttrs()}>
