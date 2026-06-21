@@ -300,20 +300,44 @@
   .ad-label{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.6px;
     text-transform:uppercase;color:#a9a293;margin:0 0 6px 2px}
   .ad-label::before{content:"";width:5px;height:5px;border-radius:50%;background:#c9c1ae}
-  .ad-slot{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);
-    background:var(--surface);box-shadow:var(--shadow)}
-  .ad-slide{display:block;text-decoration:none;position:relative;overflow:hidden}
-  .ad-slide img{width:100%;height:auto;display:block}
-  .ad-slide.no-img{min-height:150px;aspect-ratio:1100/300;display:flex;align-items:center;justify-content:center;flex-direction:column;
-    background:linear-gradient(120deg,var(--surface-2),#fff);color:var(--ink);padding:20px;text-align:center}
-  .ad-slide.no-img .at{font-family:"Fraunces",serif;font-weight:600;font-size:22px}
-  .ad-slide.no-img .ad-cta{margin-top:8px;font-size:13px;font-weight:600;color:var(--marigold)}
-  .ad-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:2}
-  .ad-dots button{width:8px;height:8px;border-radius:50%;border:none;background:rgba(255,255,255,.6);
-    box-shadow:0 0 0 1px rgba(0,0,0,.15);padding:0;cursor:pointer}
-  .ad-dots button.on{background:#fff;width:18px;border-radius:5px}
-  .ad-sponsor{position:absolute;top:9px;right:10px;background:rgba(20,40,37,.62);color:#fff;font-size:10px;
-    font-weight:600;letter-spacing:.4px;padding:3px 8px;border-radius:20px;z-index:2}
+
+  /* Slot: altura máxima de 160 px — discreto mas visível */
+  .ad-slot{
+    position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+    background:var(--surface);box-shadow:var(--shadow);
+    height:160px;          /* altura fixa e compacta */
+  }
+
+  /* Carrossel: slides empilhados, transição de opacidade suave */
+  .ad-carousel{position:relative;width:100%;height:100%}
+  .ad-slide{
+    display:block;text-decoration:none;position:absolute;inset:0;
+    overflow:hidden;opacity:0;transition:opacity .55s ease;pointer-events:none;
+  }
+  .ad-slide.active{opacity:1;pointer-events:auto}
+  .ad-slide img{width:100%;height:100%;object-fit:cover;display:block}
+  .ad-slide.no-img{
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    background:linear-gradient(120deg,var(--surface-2),#fff);color:var(--ink);padding:20px;text-align:center
+  }
+  .ad-slide.no-img .at{font-family:"Fraunces",serif;font-weight:600;font-size:20px}
+  .ad-slide.no-img .ad-cta{margin-top:6px;font-size:13px;font-weight:600;color:var(--marigold)}
+
+  /* Bolinhas de navegação */
+  .ad-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:3}
+  .ad-dots button{
+    width:7px;height:7px;border-radius:50%;border:none;
+    background:rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(0,0,0,.18);
+    padding:0;cursor:pointer;transition:width .2s,background .2s
+  }
+  .ad-dots button.on{background:#fff;width:16px;border-radius:4px}
+
+  /* Tag "Anúncio" */
+  .ad-sponsor{
+    position:absolute;top:8px;right:9px;background:rgba(20,40,37,.58);color:#fff;
+    font-size:9.5px;font-weight:700;letter-spacing:.4px;padding:3px 7px;border-radius:20px;z-index:3
+  }
+
   /* native ad card dentro da grade */
   .ad-card{grid-column:span 1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
     overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;text-decoration:none;
@@ -1017,14 +1041,26 @@ const App={
   /* ----- publicidade ----- */
   adClickAttrs(){return 'target="_blank" rel="noopener sponsored"';},
   adHref(a){return a.link?`href="${escapeHtml(a.link)}"`:'href="#" onclick="return false"';},
-  adSlideHTML(a){
+
+  /* Verifica prazo individual do banner (campo validoAte = timestamp Firestore ou ISO string) */
+  adValido(a){
+    if(!a.validoAte) return true; // sem prazo = sempre válido
+    let ts;
+    if(a.validoAte?.toMillis) ts=a.validoAte.toMillis();           // Firestore Timestamp
+    else if(a.validoAte?.seconds) ts=a.validoAte.seconds*1000;     // objeto {seconds}
+    else ts=new Date(a.validoAte).getTime();                        // string ISO ou Date
+    return Date.now() <= ts;
+  },
+
+  adSlideHTML(a, idx, total){
     const inner=a.imagem
       ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy">`
       : `<div class="at">${escapeHtml(a.titulo||'Seu anúncio aqui')}</div>${a.descricao?`<div class="ad-cta">${escapeHtml(a.descricao)}</div>`:''}`;
-    const cls=a.imagem?"ad-slide":"ad-slide no-img";
-    return `<a class="${cls}" ${this.adHref(a)} ${this.adClickAttrs()}>
+    const cls=`ad-slide${a.imagem?'':' no-img'}${idx===0?' active':''}`;
+    return `<a class="${cls}" data-idx="${idx}" ${this.adHref(a)} ${this.adClickAttrs()}>
               <span class="ad-sponsor">Anúncio</span>${inner}</a>`;
   },
+
   adCardHTML(a){
     const cover=a.imagem
       ? `<div class="ad-cover"><span class="ad-tag">Publicidade</span><img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Anúncio')}" loading="lazy"></div>`
@@ -1034,28 +1070,63 @@ const App={
         <div class="ad-meta"><div class="at">${escapeHtml(a.titulo||'Anúncio')}</div>
         <span class="ad-cta">${escapeHtml(a.descricao||'Saiba mais')} <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div></a>`;
   },
-  renderAds(){
-    const slot=(pos)=>BANNERS.filter(a=>a.posicao===pos);
-    // topo (carrossel)
-    const top=slot("topo");
-    const tw=$("adTopWrap"),ts=$("adTopSlot");
-    if(top.length){
-      tw.classList.remove("hide");
-      if(adTopIdx>=top.length)adTopIdx=0;
-      const dots=top.length>1?`<div class="ad-dots">${top.map((_,i)=>`<button class="${i===adTopIdx?'on':''}" onclick="App.adGo(${i})" aria-label="Anúncio ${i+1}"></button>`).join("")}</div>`:"";
-      ts.innerHTML=this.adSlideHTML(top[adTopIdx])+dots;
-      if(adTimer)clearInterval(adTimer);
-      if(top.length>1 && !matchMedia("(prefers-reduced-motion:reduce)").matches){
-        adTimer=setInterval(()=>{adTopIdx=(adTopIdx+1)%top.length;this.renderAds();},7000);
+
+  buildCarousel(slot, wrap, slotEl){
+    // filtra banners válidos (ativos + dentro do prazo individual)
+    const list = BANNERS.filter(a => a.posicao === slot && a.ativo !== false && this.adValido(a));
+    if(!list.length){ wrap.classList.add("hide"); return; }
+    wrap.classList.remove("hide");
+
+    const slides = list.map((a,i) => this.adSlideHTML(a, i, list.length)).join("");
+    const dots = list.length > 1
+      ? `<div class="ad-dots">${list.map((_,i)=>`<button class="${i===0?'on':''}" data-di="${i}" aria-label="Anúncio ${i+1}"></button>`).join("")}</div>`
+      : "";
+    slotEl.innerHTML = `<div class="ad-carousel">${slides}${dots}</div>`;
+
+    if(list.length <= 1) return; // sem carrossel necessário
+
+    const carousel = slotEl.querySelector(".ad-carousel");
+    let cur = 0;
+    const reduced = matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+    function goTo(n){
+      const slides = carousel.querySelectorAll(".ad-slide");
+      const dots   = carousel.querySelectorAll(".ad-dots button");
+      slides[cur].classList.remove("active");
+      dots[cur]?.classList.remove("on");
+      cur = (n + list.length) % list.length;
+      slides[cur].classList.add("active");
+      dots[cur]?.classList.add("on");
+    }
+
+    // clique nas bolinhas
+    carousel.querySelectorAll(".ad-dots button").forEach(btn=>{
+      btn.addEventListener("click", e => { e.preventDefault(); goTo(+btn.dataset.di); });
+    });
+
+    // auto-avanço com intervalo baseado em bannerInterval (padrão 6 s)
+    if(!reduced){
+      // usa o prazo de cada banner para definir o tempo no slide (campo tempoBanner em segundos, padrão 6)
+      function scheduleNext(){
+        const a = list[cur];
+        const secs = (a.tempoBanner && a.tempoBanner > 0) ? Math.max(3, a.tempoBanner) : 6;
+        return setTimeout(()=>{ goTo(cur+1); scheduleNext._timer = scheduleNext(); }, secs * 1000);
       }
-    }else{tw.classList.add("hide");if(adTimer){clearInterval(adTimer);adTimer=null;}}
-    // rodapé (mostra o primeiro ativo)
-    const foot=slot("rodape");
-    const fw=$("adFootWrap"),fs=$("adFootSlot");
-    if(foot.length){fw.classList.remove("hide");fs.innerHTML=this.adSlideHTML(foot[0]);}
-    else fw.classList.add("hide");
+      scheduleNext._timer = scheduleNext();
+      // guarda referência no elemento para limpar ao re-renderizar
+      slotEl._cleanupTimer = ()=>clearTimeout(scheduleNext._timer);
+    }
   },
-  adGo(i){adTopIdx=i;this.renderAds();},
+
+  renderAds(){
+    // limpa timers anteriores
+    ["adTopSlot","adFootSlot"].forEach(id=>{ const el=$(id); if(el?._cleanupTimer){ el._cleanupTimer(); el._cleanupTimer=null; }});
+
+    this.buildCarousel("topo",  $("adTopWrap"),  $("adTopSlot"));
+    this.buildCarousel("rodape",$("adFootWrap"), $("adFootSlot"));
+  },
+
+  adGo(i){ /* mantido por compatibilidade — não usado no novo carrossel */ },
 
   cardHTML(b){
     const [c1,c2]=coverFor(b);
