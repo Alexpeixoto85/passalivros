@@ -1234,8 +1234,7 @@ const App={
       this.updateRegBtn();
       toast("Você saiu da sua conta.","ok");
       this.closeRegister();
-      // volta a sessão anônima para continuar navegando
-      try{await signInAnonymously(auth);}catch(e){}
+      // a sessão anônima volta automaticamente pelo onAuthStateChanged (boot)
     }catch(err){console.error(err);toast("Não foi possível sair.","bad");}
   },
 
@@ -1943,13 +1942,8 @@ if(!isConfigured){
         }
       }
     });
-
-    // sessão inicial anônima (navegação aberta)
-    signInAnonymously(auth).catch(err=>{
-      console.error(err);
-      $("loadingState").classList.add("hide");
-      toast("Ative o login Anônimo no Firebase (Authentication).","bad");
-    });
+    // Nada de signInAnonymously incondicional aqui: se houver um usuário
+    // logado salvo, ele é restaurado; só entramos anonimamente pelo "else" acima.
   }catch(err){
     console.error(err);
     $("loadingState").classList.add("hide");
