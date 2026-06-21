@@ -957,7 +957,8 @@ const firebaseConfig = {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged,
-         createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut }
+         createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
+         EmailAuthProvider, linkWithCredential }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
          onSnapshot, query, orderBy, serverTimestamp, getDoc, setDoc,
@@ -1188,21 +1189,41 @@ const App={
     if(!/^\d{6}$/.test(senha))return this.authError("A senha deve ter 6 dígitos numéricos.");
     $("regSaveBtn").disabled=true;$("regSaveBtn").textContent="Criando…";
     try{
-      await createUserWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha);
-      // o onAuthStateChanged já trocou para a nova conta — grava o perfil
+      const cred=EmailAuthProvider.credential(phoneToEmail(whatsapp),senha);
+      // Se há uma sessão anônima, promovemos ela para conta (mantém o MESMO uid,
+      // para que os anúncios criados continuem sendo do usuário). Senão, cria conta nova.
+      if(auth.currentUser&&auth.currentUser.isAnonymous){
+        try{
+          await linkWithCredential(auth.currentUser,cred);
+        }catch(linkErr){
+          if(linkErr.code==="auth/email-already-in-use"||linkErr.code==="auth/credential-already-in-use"){
+            // já existe conta com esse WhatsApp → entra nela
+            await signInWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha);
+          }else throw linkErr;
+        }
+      }else{
+        await signInWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha)
+          .catch(()=>createUserWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha));
+      }
+      // grava/atualiza o perfil na conta atual
       await setDoc(doc(db,"usuarios",auth.currentUser.uid),{
-        nome,whatsapp,email,cadastrado:true,favoritos:[],
+        nome,whatsapp,email,cadastrado:true,
         cadastradoEm:serverTimestamp(),ultimoAcesso:serverTimestamp()
       },{merge:true});
-      USER_PROFILE={nome,whatsapp,email,cadastrado:true,favoritos:[]};FAVS=new Set();
+      currentUser=auth.currentUser;uid=auth.currentUser.uid;isAnon=false;
+      USER_PROFILE={...(USER_PROFILE||{}),nome,whatsapp,email,cadastrado:true};
       localStorage.setItem("pl_nome",nome);localStorage.setItem("pl_whats",whatsapp);localStorage.setItem("pl_email",email);
       this.updateRegBtn();
       const cb=this._afterAuth;
       toast("Conta criada! Agora você pode anunciar e favoritar. 🎉","ok");
       this.closeRegister();
+      this.render();
       if(cb)setTimeout(cb,200);
     }catch(err){
       const m={"auth/email-already-in-use":"Já existe uma conta com esse WhatsApp. Toque em \"Já tenho conta\".",
+        "auth/credential-already-in-use":"Esse WhatsApp já tem conta. Toque em \"Já tenho conta\".",
+        "auth/wrong-password":"Esse WhatsApp já tem conta, mas a senha não confere. Toque em \"Já tenho conta\".",
+        "auth/invalid-credential":"Esse WhatsApp já tem conta, mas a senha não confere. Toque em \"Já tenho conta\".",
         "auth/weak-password":"A senha deve ter ao menos 6 dígitos.",
         "auth/operation-not-allowed":"Ative o provedor E-mail/senha no Firebase (Authentication)."}[err.code];
       this.authError(m||("Não foi possível criar a conta: "+(err.code||err.message)));
@@ -1293,6 +1314,11 @@ const App={
     if(!isRegistered()){
       toast("Entre na sua conta para anunciar.","");
       this.openRegister(()=>this.openForm(book));
+      return;
+    }
+    // edição: o anúncio precisa pertencer à conta atual (senão a regra do Firestore recusa o salvamento)
+    if(book&&book.ownerId&&book.ownerId!==uid){
+      toast("Este anúncio foi criado em outra sessão e não pode ser editado por esta conta.","bad");
       return;
     }
     editingId=book?book.id:null;
@@ -1410,7 +1436,14 @@ const App={
       this.closeForm();
     }catch(err){
       console.error(err);
-      this.formError("Não foi possível salvar. Verifique sua conexão e as regras do Firestore.");
+      const code=err.code||err.message||"";
+      if(code.includes("permission-denied")){
+        this.formError("Sem permissão para salvar este anúncio. Ele pode ter sido criado em outra conta/sessão. Tente publicá-lo novamente como um anúncio novo.");
+      }else if(code.includes("unavailable")||code.includes("network")){
+        this.formError("Falha de conexão. Verifique sua internet e tente novamente.");
+      }else{
+        this.formError("Não foi possível salvar: "+code);
+      }
     }finally{
       $("saveBtn").disabled=false;
       $("saveBtn").textContent=editingId?"Salvar alterações":"Publicar anúncio";
