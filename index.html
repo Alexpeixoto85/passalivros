@@ -116,8 +116,14 @@
   .search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:19px;height:19px;color:var(--ink-soft)}
   .search input{
     width:100%;padding:14px 16px 14px 44px;border-radius:13px;border:1px solid var(--line-strong);
-    background:var(--surface);font-size:15px;font-family:inherit;color:var(--text);box-shadow:var(--shadow)}
+    background:var(--surface);font-size:15px;font-family:inherit;color:var(--text);box-shadow:var(--shadow);
+    -webkit-appearance:none;appearance:none}
   .search input::placeholder{color:#9aa6a1}
+  /* remove a lupa/botões nativos do type=search (evita lupa duplicada no Safari/iPad) */
+  .search input::-webkit-search-decoration,
+  .search input::-webkit-search-results-button,
+  .search input::-webkit-search-results-decoration,
+  .search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
   .filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
   .sel{position:relative}
   select,.price-in{
