@@ -176,6 +176,20 @@
   .wa-btn:hover{background:var(--wa-press)}
   .wa-btn svg{width:16px;height:16px}
 
+  /* favoritos */
+  .fav-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:10px;
+    background:var(--danger);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;line-height:1}
+  .fav-btn{position:absolute;top:11px;right:11px;width:36px;height:36px;border-radius:50%;z-index:3;
+    background:rgba(255,255,255,.92);border:1px solid var(--line);display:grid;place-items:center;
+    color:var(--ink-soft);box-shadow:var(--shadow);transition:transform .1s,color .15s,background .15s}
+  .fav-btn:hover{transform:scale(1.08)}
+  .fav-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+  .fav-btn.on{color:var(--danger)}
+  .fav-btn.on svg{fill:var(--danger);stroke:var(--danger)}
+  .fav-btn.detail{position:static;width:auto;height:auto;border-radius:11px;padding:11px 16px;gap:8px;
+    display:inline-flex;align-items:center;font-weight:600;font-size:14px;color:var(--ink)}
+  .fav-btn.detail.on{color:var(--danger);border-color:var(--danger-soft);background:var(--danger-soft)}
+
   /* owner tag */
   .owner-row{display:flex;gap:8px;padding:0 16px 4px}
   .owner-actions{display:flex;gap:8px;width:100%;flex-wrap:wrap}
@@ -407,6 +421,8 @@
   }
   @media(max-width:560px){
     .brand-tag{display:none}
+    .cloud-dot{display:none}
+    .nav-actions{gap:7px}
     .nav-actions .btn span.lbl{display:none}
     .nav-actions .btn{padding:11px}
     .icon-only{display:inline-flex}
@@ -464,6 +480,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
         <span class="lbl" id="regBtnLbl">Cadastrar</span>
       </button>
+      <button class="btn btn-ghost" id="favBtn" onclick="App.toggleFavsView()" title="Meus favoritos" style="position:relative">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        <span class="lbl">Favoritos</span>
+        <span class="fav-count hide" id="favCount">0</span>
+      </button>
       <button class="btn btn-ghost" id="mineBtn" onclick="App.toggleMine()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="lbl">Meus anúncios</span>
@@ -486,7 +507,7 @@
     <ol>
       <li>Acesse o <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console do Firebase</a> e clique em <b>Adicionar projeto</b>.</li>
       <li>No menu lateral, abra <b>Build → Firestore Database</b> e clique em <b>Criar banco de dados</b> (pode iniciar no modo de teste).</li>
-      <li>Abra <b>Build → Authentication → Sign-in method</b> e ative o provedor <b>Anônimo</b>.</li>
+      <li>Abra <b>Build → Authentication → Sign-in method</b> e ative os provedores <b>Anônimo</b> (navegação) e <b>E-mail/senha</b> (contas dos usuários).</li>
       <li>Em <b>Configurações do projeto ⚙️ → Seus apps</b>, registre um app <b>Web</b> e copie o objeto <code>firebaseConfig</code>.</li>
       <li>Cole esse objeto neste arquivo, dentro do bloco marcado <span class="pill">COLE AQUI</span>, salve e recarregue a página.</li>
     </ol>
@@ -786,34 +807,94 @@ service cloud.firestore {
   </div>
 </div>
 
-<!-- =============== MODAL: CADASTRO =============== -->
+<!-- =============== MODAL: CONTA (entrar / criar / minha conta) =============== -->
 <div class="scrim" id="regScrim">
-  <div class="modal" style="max-width:480px" role="dialog" aria-modal="true" aria-labelledby="regTitle">
+  <div class="modal" style="max-width:460px" role="dialog" aria-modal="true" aria-labelledby="regTitle">
     <div class="modal-head">
-      <h2 id="regTitle">Criar seu cadastro</h2>
+      <h2 id="regTitle">Entrar no PassaLivro</h2>
       <button class="xclose" onclick="App.closeRegister()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>
     <div class="modal-body">
-      <p style="color:var(--ink-soft);margin:0 0 18px;font-size:14.5px" id="regSub">Para anunciar no PassaLivro, faça um cadastro rápido. Seus dados ficam guardados para os próximos anúncios.</p>
-      <form id="regForm" onsubmit="App.saveRegister(event)">
+      <div class="err" id="authErr" style="margin-bottom:14px"></div>
+
+      <!-- escolha -->
+      <div id="authChoice">
+        <p style="color:var(--ink-soft);margin:0 0 18px;font-size:14.5px">Para anunciar e favoritar livros, entre na sua conta ou crie uma. É rápido.</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn btn-primary" style="justify-content:center;padding:14px" onclick="App.authShow('login')">Já tenho conta — entrar</button>
+          <button class="btn btn-ghost" style="justify-content:center;padding:14px" onclick="App.authShow('register')">Quero criar uma conta</button>
+        </div>
+      </div>
+
+      <!-- login -->
+      <form id="authLogin" class="hide" onsubmit="App.doLogin(event)">
+        <p style="color:var(--ink-soft);margin:0 0 16px;font-size:14px">Use o seu WhatsApp (com DDD) como usuário.</p>
         <div class="field">
-          <label class="lab" for="regNome">Seu nome</label>
-          <input class="inp" id="regNome" placeholder="Ex.: Ana Souza" required>
+          <label class="lab" for="loginWhats">WhatsApp (usuário)</label>
+          <input class="inp" id="loginWhats" type="tel" placeholder="Ex.: (11) 99876-5432" autocomplete="username">
         </div>
         <div class="field">
-          <label class="lab" for="regWhats">WhatsApp (com DDD)</label>
-          <input class="inp" id="regWhats" type="tel" placeholder="Ex.: (11) 99876-5432" required>
+          <label class="lab" for="loginSenha">Senha</label>
+          <input class="inp" id="loginSenha" type="password" inputmode="numeric" placeholder="Sua senha de 6 dígitos" autocomplete="current-password">
+        </div>
+        <div class="form-foot" style="justify-content:space-between">
+          <button type="button" class="btn btn-ghost" onclick="App.authShow('choice')">Voltar</button>
+          <button type="submit" class="btn btn-primary" id="loginBtn">Entrar</button>
+        </div>
+        <p class="help-txt" style="text-align:center;margin-top:12px">Não tem conta? <a style="color:var(--marigold);font-weight:600;cursor:pointer" onclick="App.authShow('register')">Criar agora</a></p>
+      </form>
+
+      <!-- registro -->
+      <form id="authRegister" class="hide" onsubmit="App.doRegister(event)">
+        <div class="field">
+          <label class="lab" for="regNome">Seu nome</label>
+          <input class="inp" id="regNome" placeholder="Ex.: Ana Souza" autocomplete="name">
+        </div>
+        <div class="field">
+          <label class="lab" for="regWhats">WhatsApp (com DDD) <span class="opt">— será seu usuário</span></label>
+          <input class="inp" id="regWhats" type="tel" placeholder="Ex.: (11) 99876-5432" autocomplete="tel">
         </div>
         <div class="field">
           <label class="lab" for="regEmail">E-mail <span class="opt">(opcional)</span></label>
           <input class="inp" id="regEmail" type="email" placeholder="voce@exemplo.com">
         </div>
-        <div class="err" id="regErr"></div>
-        <div class="form-foot">
-          <button type="button" class="btn btn-ghost" onclick="App.closeRegister()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="regSaveBtn">Concluir cadastro</button>
+        <div class="field">
+          <label class="lab" for="regSenha">Senha de 6 dígitos</label>
+          <input class="inp" id="regSenha" type="password" inputmode="numeric" maxlength="6" pattern="\d{6}" placeholder="Ex.: 123456" autocomplete="new-password">
+          <div class="help-txt">Crie uma senha numérica de 6 dígitos.</div>
         </div>
+        <div class="form-foot" style="justify-content:space-between">
+          <button type="button" class="btn btn-ghost" onclick="App.authShow('choice')">Voltar</button>
+          <button type="submit" class="btn btn-primary" id="regSaveBtn">Criar conta</button>
+        </div>
+        <p class="help-txt" style="text-align:center;margin-top:12px">Já tem conta? <a style="color:var(--marigold);font-weight:600;cursor:pointer" onclick="App.authShow('login')">Entrar</a></p>
       </form>
+
+      <!-- minha conta -->
+      <div id="authAccount" class="hide">
+        <form onsubmit="App.saveAccount(event)">
+          <div class="field">
+            <label class="lab" for="accNome">Nome</label>
+            <input class="inp" id="accNome" placeholder="Seu nome">
+          </div>
+          <div class="field">
+            <label class="lab">WhatsApp (usuário)</label>
+            <div class="inp" style="background:var(--surface-2);color:var(--ink-soft)" id="accWhats">—</div>
+          </div>
+          <div class="field">
+            <label class="lab" for="accEmail">E-mail <span class="opt">(opcional)</span></label>
+            <input class="inp" id="accEmail" type="email" placeholder="voce@exemplo.com">
+          </div>
+          <div class="form-foot" style="justify-content:space-between">
+            <button type="button" class="btn btn-ghost" style="color:var(--danger);border-color:var(--danger-soft)" onclick="App.logout()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+              Sair
+            </button>
+            <button type="submit" class="btn btn-primary" id="accSaveBtn">Salvar dados</button>
+          </div>
+        </form>
+      </div>
+
     </div>
   </div>
 </div>
@@ -875,10 +956,12 @@ const firebaseConfig = {
 /* ===================== fim da configuração ===================== */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged }
+import { getAuth, signInAnonymously, onAuthStateChanged,
+         createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-         onSnapshot, query, orderBy, serverTimestamp, getDoc, setDoc }
+         onSnapshot, query, orderBy, serverTimestamp, getDoc, setDoc,
+         arrayUnion, arrayRemove }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const isConfigured = !String(firebaseConfig.apiKey).startsWith("COLE_AQUI");
@@ -892,10 +975,15 @@ let adTopIdx=0, adTimer=null;
 let pendingPhotos=[];   // fotos do formulário (base64)
 let editingId=null;
 let showMine=false;
+let showFavs=false;
 let detailBook=null, galIndex=0;
 let finishingId=null;
-let USER_PROFILE=null;       // perfil do usuário cadastrado (nome, whatsapp, email)
-let pendingFormBook=undefined; // anúncio aguardando cadastro antes de abrir o form
+let USER_PROFILE=null;       // perfil da conta logada (nome, telefone, email, favoritos)
+let currentUser=null;        // usuário do Firebase Auth
+let isAnon=true;             // sessão anônima (apenas navegação)
+let FAVS=new Set();          // ids de livros favoritados
+let listenersReady=false;    // evita reassinar os snapshots
+const EMAIL_DOMAIN="passalivro.app"; // domínio sintético: o telefone é o "usuário"
 
 const $=id=>document.getElementById(id);
 const COVER_PALETTE=[
@@ -946,39 +1034,29 @@ async function trackAccess(uidVal){
     await setDoc(doc(db,"acessos",`${ds}_${uidVal}`),{data:ds,uid:uidVal,ts:serverTimestamp()},{merge:true});
   }catch(e){console.warn("acessos:",e);}
 }
-/* carrega o perfil cadastrado do usuário (se existir) */
+/* carrega o perfil da conta logada (nome, telefone, email, favoritos) */
 async function loadProfile(uidVal){
+  USER_PROFILE=null;FAVS=new Set();
   try{
     const snap=await getDoc(doc(db,"usuarios",uidVal));
-    if(snap.exists()&&snap.data().cadastrado){
+    if(snap.exists()){
       USER_PROFILE=snap.data();
-      localStorage.setItem("pl_cadastrado","1");
+      (USER_PROFILE.favoritos||[]).forEach(id=>FAVS.add(id));
       if(USER_PROFILE.nome)localStorage.setItem("pl_nome",USER_PROFILE.nome);
       if(USER_PROFILE.whatsapp)localStorage.setItem("pl_whats",USER_PROFILE.whatsapp);
       if(USER_PROFILE.email)localStorage.setItem("pl_email",USER_PROFILE.email);
     }
-  }catch(e){
-    /* a leitura pode estar bloqueada pelas regras — usamos o cadastro local como reserva */
-    console.warn("perfil:",e);
-    if(localStorage.getItem("pl_cadastrado")==="1"){
-      USER_PROFILE={
-        nome:localStorage.getItem("pl_nome")||"",
-        whatsapp:localStorage.getItem("pl_whats")||"",
-        email:localStorage.getItem("pl_email")||"",
-        cadastrado:true
-      };
-    }
-  }
-  // se já cadastrado, atualiza o último acesso no perfil
+  }catch(e){console.warn("perfil:",e);}
   if(isRegistered()){
     try{await setDoc(doc(db,"usuarios",uidVal),{ultimoAcesso:serverTimestamp()},{merge:true});}catch(e){}
   }
   App.updateRegBtn();
 }
-function isRegistered(){
-  return !!(USER_PROFILE&&USER_PROFILE.cadastrado)||localStorage.getItem("pl_cadastrado")==="1";
-}
+/* logado = conta real (não anônima) */
+function isRegistered(){return !!(currentUser&&!currentUser.isAnonymous);}
 function isValidEmail(s){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s||"").trim());}
+/* telefone vira o "usuário": e-mail sintético para o Firebase Auth */
+function phoneToEmail(raw){return `${normalizePhone(raw)}@${EMAIL_DOMAIN}`;}
 
 /* ---------------- toast ---------------- */
 function toast(msg,kind="",icon=""){
@@ -1017,86 +1095,204 @@ function compress(file){
    App
    ============================================================ */
 const App={
-  goHome(){showMine=false;$("mineBtn").classList.remove("active");this.scrollToTop();this.render();},
+  goHome(){showMine=false;showFavs=false;$("mineBtn").classList.remove("active");this.updateRegBtn();this.scrollToTop();this.render();},
   scrollToTop(){window.scrollTo({top:0,behavior:"smooth"});},
   scrollToList(){$("listTop").scrollIntoView({behavior:"smooth",block:"start"});},
 
-  /* ---------- cadastro de usuário ---------- */
+  /* ---------- conta: login / cadastro / sair ---------- */
   updateRegBtn(){
     const lbl=$("regBtnLbl");if(!lbl)return;
     const btn=$("regBtn");
     if(isRegistered()){
-      // cadastrado: somente o ícone, discreto (sem exibir o nome)
-      lbl.textContent="";
-      lbl.classList.add("hide");
+      lbl.textContent="";lbl.classList.add("hide");
       btn.classList.add("icon-pill");
-      btn.title="Ver / editar meu cadastro";
-      btn.setAttribute("aria-label","Meu cadastro");
+      btn.title="Minha conta";btn.setAttribute("aria-label","Minha conta");
     }else{
-      lbl.textContent="Cadastrar";
-      lbl.classList.remove("hide");
+      lbl.textContent="Entrar";lbl.classList.remove("hide");
       btn.classList.remove("icon-pill");
-      btn.title="Criar cadastro para anunciar";
-      btn.setAttribute("aria-label","Cadastrar");
+      btn.title="Entrar ou criar conta";btn.setAttribute("aria-label","Entrar");
+    }
+    // botão de favoritos
+    const fav=$("favBtn");if(fav)fav.classList.toggle("active",showFavs);
+  },
+  // ponto de entrada do botão "Entrar / Minha conta"
+  openRegister(afterCb){
+    if(!isConfigured){toast("Configure o Firebase para usar contas (veja o passo a passo no topo).","bad");return;}
+    this._afterAuth=(typeof afterCb==="function")?afterCb:null;
+    $("authErr").classList.remove("show");
+    $("regScrim").classList.add("open");document.body.style.overflow="hidden";
+    if(isRegistered())this.authShow("account");
+    else this.authShow("choice");
+  },
+  closeRegister(){$("regScrim").classList.remove("open");document.body.style.overflow="";this._afterAuth=null;},
+  authShow(view){
+    ["authChoice","authLogin","authRegister","authAccount"].forEach(id=>$(id).classList.add("hide"));
+    $("authErr").classList.remove("show");
+    const titles={choice:"Entrar no PassaLivro",login:"Entrar na sua conta",register:"Criar uma conta",account:"Minha conta"};
+    $("regTitle").textContent=titles[view]||"Entrar no PassaLivro";
+    if(view==="choice")$("authChoice").classList.remove("hide");
+    else if(view==="login"){
+      $("authLogin").classList.remove("hide");
+      $("loginWhats").value=localStorage.getItem("pl_whats")||"";
+      setTimeout(()=>$("loginWhats").focus(),60);
+    }else if(view==="register"){
+      $("authRegister").classList.remove("hide");
+      $("regNome").value=localStorage.getItem("pl_nome")||"";
+      $("regWhats").value=localStorage.getItem("pl_whats")||"";
+      $("regEmail").value=localStorage.getItem("pl_email")||"";
+      $("regSenha").value="";
+      setTimeout(()=>$("regNome").focus(),60);
+    }else if(view==="account"){
+      $("authAccount").classList.remove("hide");
+      const p=USER_PROFILE||{};
+      $("accNome").value=p.nome||localStorage.getItem("pl_nome")||"";
+      $("accEmail").value=p.email||localStorage.getItem("pl_email")||"";
+      $("accWhats").textContent=p.whatsapp||localStorage.getItem("pl_whats")||"—";
     }
   },
-  openRegister(afterCb){
-    if(!isConfigured){toast("Configure o Firebase para se cadastrar (veja o passo a passo no topo).","bad");return;}
-    pendingFormBook=undefined;
-    this._afterRegister=(typeof afterCb==="function")?afterCb:null;
-    const editing=isRegistered();
-    $("regTitle").textContent=editing?"Meu cadastro":"Criar seu cadastro";
-    $("regSub").textContent=editing
-      ? "Atualize seus dados. Eles são usados como contato nos seus anúncios."
-      : "Para anunciar no PassaLivro, faça um cadastro rápido. Seus dados ficam guardados para os próximos anúncios.";
-    $("regSaveBtn").textContent=editing?"Salvar cadastro":"Concluir cadastro";
-    $("regNome").value=(USER_PROFILE&&USER_PROFILE.nome)||localStorage.getItem("pl_nome")||"";
-    $("regWhats").value=(USER_PROFILE&&USER_PROFILE.whatsapp)||localStorage.getItem("pl_whats")||"";
-    $("regEmail").value=(USER_PROFILE&&USER_PROFILE.email)||localStorage.getItem("pl_email")||"";
-    $("regErr").classList.remove("show");
-    $("regScrim").classList.add("open");document.body.style.overflow="hidden";
-    setTimeout(()=>$("regNome").focus(),60);
+  authError(msg){const el=$("authErr");el.textContent=msg;el.classList.add("show");},
+
+  async doLogin(e){
+    e.preventDefault();
+    const whats=$("loginWhats").value.trim();
+    const senha=$("loginSenha").value;
+    if(normalizePhone(whats).length<12)return this.authError("Informe o WhatsApp com DDD.");
+    if(!senha)return this.authError("Informe sua senha.");
+    $("loginBtn").disabled=true;$("loginBtn").textContent="Entrando…";
+    try{
+      await signInWithEmailAndPassword(auth,phoneToEmail(whats),senha);
+      localStorage.setItem("pl_whats",whats);
+      const cb=this._afterAuth;
+      toast("Bem-vindo de volta! 👋","ok");
+      this.closeRegister();
+      if(cb)setTimeout(cb,200);
+    }catch(err){
+      const m={"auth/invalid-credential":"WhatsApp ou senha incorretos.",
+        "auth/wrong-password":"Senha incorreta.",
+        "auth/user-not-found":"Não há conta com esse WhatsApp. Crie uma conta.",
+        "auth/too-many-requests":"Muitas tentativas. Tente de novo em alguns minutos.",
+        "auth/operation-not-allowed":"Ative o provedor E-mail/senha no Firebase (Authentication)."}[err.code];
+      this.authError(m||("Não foi possível entrar: "+(err.code||err.message)));
+    }finally{$("loginBtn").disabled=false;$("loginBtn").textContent="Entrar";}
   },
-  closeRegister(){$("regScrim").classList.remove("open");document.body.style.overflow="";this._afterRegister=null;},
-  regError(msg){const el=$("regErr");el.textContent=msg;el.classList.add("show");},
-  async saveRegister(e){
+
+  async doRegister(e){
     e.preventDefault();
     const nome=$("regNome").value.trim();
     const whatsapp=$("regWhats").value.trim();
     const email=$("regEmail").value.trim();
-    if(!nome)return this.regError("Informe seu nome.");
-    if(normalizePhone(whatsapp).length<12)return this.regError("Informe um WhatsApp válido com DDD.");
-    if(email&&!isValidEmail(email))return this.regError("O e-mail informado não é válido.");
-    $("regSaveBtn").disabled=true;$("regSaveBtn").textContent="Salvando…";
-    const novo=!isRegistered();
+    const senha=$("regSenha").value;
+    if(!nome)return this.authError("Informe seu nome.");
+    if(normalizePhone(whatsapp).length<12)return this.authError("Informe um WhatsApp válido com DDD.");
+    if(email&&!isValidEmail(email))return this.authError("O e-mail informado não é válido.");
+    if(!/^\d{6}$/.test(senha))return this.authError("A senha deve ter 6 dígitos numéricos.");
+    $("regSaveBtn").disabled=true;$("regSaveBtn").textContent="Criando…";
     try{
-      const payload={nome,whatsapp,email,cadastrado:true,ultimoAcesso:serverTimestamp()};
-      if(novo)payload.cadastradoEm=serverTimestamp();
-      await setDoc(doc(db,"usuarios",uid),payload,{merge:true});
-      USER_PROFILE={...(USER_PROFILE||{}),nome,whatsapp,email,cadastrado:true};
-      localStorage.setItem("pl_cadastrado","1");
-      localStorage.setItem("pl_nome",nome);
-      localStorage.setItem("pl_whats",whatsapp);
-      localStorage.setItem("pl_email",email);
+      await createUserWithEmailAndPassword(auth,phoneToEmail(whatsapp),senha);
+      // o onAuthStateChanged já trocou para a nova conta — grava o perfil
+      await setDoc(doc(db,"usuarios",auth.currentUser.uid),{
+        nome,whatsapp,email,cadastrado:true,favoritos:[],
+        cadastradoEm:serverTimestamp(),ultimoAcesso:serverTimestamp()
+      },{merge:true});
+      USER_PROFILE={nome,whatsapp,email,cadastrado:true,favoritos:[]};FAVS=new Set();
+      localStorage.setItem("pl_nome",nome);localStorage.setItem("pl_whats",whatsapp);localStorage.setItem("pl_email",email);
       this.updateRegBtn();
-      toast(novo?"Cadastro concluído! Agora você pode anunciar.":"Cadastro atualizado.","ok");
-      const cb=this._afterRegister;
+      const cb=this._afterAuth;
+      toast("Conta criada! Agora você pode anunciar e favoritar. 🎉","ok");
       this.closeRegister();
-      if(cb)cb();
+      if(cb)setTimeout(cb,200);
+    }catch(err){
+      const m={"auth/email-already-in-use":"Já existe uma conta com esse WhatsApp. Toque em \"Já tenho conta\".",
+        "auth/weak-password":"A senha deve ter ao menos 6 dígitos.",
+        "auth/operation-not-allowed":"Ative o provedor E-mail/senha no Firebase (Authentication)."}[err.code];
+      this.authError(m||("Não foi possível criar a conta: "+(err.code||err.message)));
+    }finally{$("regSaveBtn").disabled=false;$("regSaveBtn").textContent="Criar conta";}
+  },
+
+  async saveAccount(e){
+    e.preventDefault();
+    const nome=$("accNome").value.trim();
+    const email=$("accEmail").value.trim();
+    if(!nome)return this.authError("Informe seu nome.");
+    if(email&&!isValidEmail(email))return this.authError("O e-mail informado não é válido.");
+    $("accSaveBtn").disabled=true;$("accSaveBtn").textContent="Salvando…";
+    try{
+      await setDoc(doc(db,"usuarios",uid),{nome,email},{merge:true});
+      USER_PROFILE={...(USER_PROFILE||{}),nome,email};
+      localStorage.setItem("pl_nome",nome);localStorage.setItem("pl_email",email);
+      this.updateRegBtn();this.render();
+      toast("Dados atualizados.","ok");
+    }catch(err){console.error(err);this.authError("Não foi possível salvar os dados.");}
+    finally{$("accSaveBtn").disabled=false;$("accSaveBtn").textContent="Salvar dados";}
+  },
+
+  async logout(){
+    try{
+      await signOut(auth);
+      USER_PROFILE=null;FAVS=new Set();showMine=false;showFavs=false;
+      $("mineBtn").classList.remove("active");
+      this.updateRegBtn();
+      toast("Você saiu da sua conta.","ok");
+      this.closeRegister();
+      // volta a sessão anônima para continuar navegando
+      try{await signInAnonymously(auth);}catch(e){}
+    }catch(err){console.error(err);toast("Não foi possível sair.","bad");}
+  },
+
+  /* ---------- favoritos ---------- */
+  isFav(id){return FAVS.has(id);},
+  async toggleFav(id,ev){
+    if(ev)ev.stopPropagation();
+    if(!isRegistered()){
+      toast("Entre na sua conta para favoritar livros.","");
+      this.openRegister(()=>this.toggleFav(id));
+      return;
+    }
+    const adding=!FAVS.has(id);
+    if(adding)FAVS.add(id);else FAVS.delete(id);
+    this.syncFavUI(id);
+    this.updateFavCount();
+    // atualiza o rótulo no detalhe se estiver aberto
+    if(detailBook&&detailBook.id===id&&$("detailScrim").classList.contains("open")){
+      $("detailBody").innerHTML=this.detailHTML(detailBook);
+    }
+    try{
+      await updateDoc(doc(db,"usuarios",uid),{favoritos:adding?arrayUnion(id):arrayRemove(id)});
+      USER_PROFILE=USER_PROFILE||{};USER_PROFILE.favoritos=[...FAVS];
+      toast(adding?"Adicionado aos favoritos ❤️":"Removido dos favoritos","ok");
     }catch(err){
       console.error(err);
-      this.regError("Não foi possível salvar o cadastro. Verifique sua conexão e as regras do Firestore.");
-    }finally{
-      $("regSaveBtn").disabled=false;
-      $("regSaveBtn").textContent=novo?"Concluir cadastro":"Salvar cadastro";
+      if(adding)FAVS.delete(id);else FAVS.add(id);
+      this.syncFavUI(id);this.updateFavCount();
+      if(detailBook&&detailBook.id===id&&$("detailScrim").classList.contains("open")){
+        $("detailBody").innerHTML=this.detailHTML(detailBook);
+      }
+      toast("Não foi possível atualizar os favoritos.","bad");
     }
+    if(showFavs)this.render();
+  },
+  syncFavUI(id){
+    document.querySelectorAll(`.fav-btn[data-id="${id}"]`).forEach(b=>b.classList.toggle("on",FAVS.has(id)));
+  },
+  updateFavCount(){
+    const el=$("favCount");if(!el)return;
+    const n=FAVS.size;el.textContent=n;el.classList.toggle("hide",n===0);
+  },
+  toggleFavsView(){
+    if(!isRegistered()){
+      toast("Entre na sua conta para ver seus favoritos.","");
+      this.openRegister(()=>{showFavs=true;showMine=false;$("mineBtn").classList.remove("active");this.updateRegBtn();this.render();this.scrollToList();});
+      return;
+    }
+    showFavs=!showFavs;if(showFavs){showMine=false;$("mineBtn").classList.remove("active");}
+    this.updateRegBtn();this.render();this.scrollToList();
   },
 
   /* ---------- form ---------- */
   openForm(book=null){
     if(!isConfigured){toast("Configure o Firebase para publicar (veja o passo a passo no topo).","bad");return;}
     if(!isRegistered()){
-      toast("Faça um cadastro rápido para anunciar.","");
+      toast("Entre na sua conta para anunciar.","");
       this.openRegister(()=>this.openForm(book));
       return;
     }
@@ -1249,7 +1445,7 @@ const App={
   },
 
   /* ---------- filters ---------- */
-  toggleMine(){showMine=!showMine;$("mineBtn").classList.toggle("active",showMine);this.render();this.scrollToList();},
+  toggleMine(){showMine=!showMine;if(showMine)showFavs=false;$("mineBtn").classList.toggle("active",showMine);this.updateRegBtn();this.render();this.scrollToList();},
   clearFilters(){["q","fCategoria","fDisc","fSerie","fGenero","fTipo","fEstado"].forEach(id=>$(id).value="");$("fSort").value="recent";this.render();},
 
   populateFilters(){
@@ -1272,7 +1468,9 @@ const App={
     const fT=$("fTipo").value,fE=$("fEstado").value,sort=$("fSort").value;
     let list=BOOKS.filter(b=>{
       const cat=b.categoria||"escolar";
-      if(showMine){
+      if(showFavs){
+        if(!FAVS.has(b.id))return false;   // mostra favoritos em qualquer status
+      }else if(showMine){
         if(b.ownerId!==uid)return false;
       }else{
         if(b.ownerId!==uid&&b.status==="finalizado")return false;
@@ -1296,6 +1494,7 @@ const App={
   render(){
     if(!isConfigured)return;
     this.populateFilters();
+    this.updateFavCount();
     const list=this.filtered();
     const anyFilter=$("q").value||$("fCategoria").value||$("fDisc").value||$("fSerie").value||$("fGenero").value||$("fTipo").value||$("fEstado").value;
     $("clearF").classList.toggle("show",!!anyFilter||$("fSort").value!=="recent");
@@ -1311,14 +1510,16 @@ const App={
       grid.innerHTML="";
       $("resultLine").textContent="";
       const es=$("emptyState");es.classList.remove("hide");
-      if(showMine){$("emptyTitle").textContent="Você ainda não tem anúncios";$("emptyText").textContent="Os livros que você publicar aparecem aqui para gerenciar.";}
+      if(showFavs){$("emptyTitle").textContent="Você ainda não favoritou livros";$("emptyText").textContent="Toque no coração de um livro para salvá-lo aqui e combinar o negócio depois.";}
+      else if(showMine){$("emptyTitle").textContent="Você ainda não tem anúncios";$("emptyText").textContent="Os livros que você publicar aparecem aqui para gerenciar.";}
       else if(anyFilter){$("emptyTitle").textContent="Nenhum livro com esses filtros";$("emptyText").textContent="Tente ampliar a busca ou limpar os filtros.";}
       else{$("emptyTitle").textContent="Ainda não há livros por aqui";$("emptyText").textContent="Seja a primeira família a anunciar. Cadastre um livro que você não usa mais e ajude alguém da escola.";}
       return;
     }
     $("emptyState").classList.add("hide");
     const limiteTxt=(showMine&&CONFIG.limiteAnuncios>0)?` — ${activeCount(uid)} de ${CONFIG.limiteAnuncios} anúncios ativos usados`:"";
-    $("resultLine").innerHTML=`<b>${list.length}</b> ${list.length===1?"livro encontrado":"livros encontrados"}${showMine?" — seus anúncios":""}${limiteTxt}`;
+    const escopo=showFavs?" — seus favoritos":showMine?" — seus anúncios":"";
+    $("resultLine").innerHTML=`<b>${list.length}</b> ${list.length===1?"livro":"livros"}${escopo}${limiteTxt}`;
     // intercala anúncios "grade" entre os cartões de livros
     const gradeAds=BANNERS.filter(a=>a.posicao==="grade");
     const cells=[];let ai=0;
@@ -1475,8 +1676,11 @@ const App={
     const expirado=isExpired(b);
     const encerrado=finalizado||expirado;
     const statusBadge=finalizado
-      ? `<span class="badge status-fim">${b.negocioFechado?"Negócio fechado":"Concluído"}</span>`
-      : expirado?`<span class="badge status-exp">Expirado</span>`:"";
+      ? `<span class="badge status-fim" style="top:auto;bottom:11px;left:11px;right:auto">${b.negocioFechado?"Negócio fechado":"Concluído"}</span>`
+      : expirado?`<span class="badge status-exp" style="top:auto;bottom:11px;left:11px;right:auto">Expirado</span>`:"";
+    const favBtn=`<button class="fav-btn${this.isFav(b.id)?' on':''}" data-id="${b.id}" onclick="App.toggleFav('${b.id}',event)" aria-label="Favoritar" title="Favoritar">
+        <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+      </button>`;
     const footHTML=encerrado
       ? `<div class="mini" style="flex:1;justify-content:center;background:var(--surface-2);color:var(--ink-soft);cursor:default">Anúncio encerrado</div>`
       : `<a class="wa-btn" href="${waLink(b)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
@@ -1494,6 +1698,7 @@ const App={
         <div class="cover">
           <span class="badge ${b.tipo}">${tipoLabel(b.tipo)}</span>
           ${statusBadge}
+          ${favBtn}
           ${cover}
         </div>
         <div class="card-body">
@@ -1639,6 +1844,12 @@ const App={
       <div class="detail-section-title">Informações do livro</div>
       ${infoGrid}
       ${b.descricao?`<div class="detail-section-title">Sobre o livro</div><div class="detail-desc">${escapeHtml(b.descricao)}</div>`:""}
+      <div style="margin-top:16px">
+        <button class="fav-btn detail${this.isFav(b.id)?' on':''}" data-id="${b.id}" onclick="App.toggleFav('${b.id}',event)">
+          <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          <span>${this.isFav(b.id)?"Nos seus favoritos":"Adicionar aos favoritos"}</span>
+        </button>
+      </div>
       ${waBlock}
       ${ownerBlock}`;
   },
@@ -1681,38 +1892,59 @@ if(!isConfigured){
     const app=initializeApp(firebaseConfig);
     auth=getAuth(app);db=getFirestore(app);colRef=collection(db,"livros");bannerRef=collection(db,"banners");
     usuariosRef=collection(db,"usuarios");acessosRef=collection(db,"acessos");configRef=doc(db,"config","geral");
+
     onSnapshot(configRef,snap=>{
       const d=snap.exists()?snap.data():{};
       CONFIG={prazoDias:Number(d.prazoDias)||0,limiteAnuncios:Number(d.limiteAnuncios)||0};
       App.render();
     },err=>console.warn("config:",err));
-    onAuthStateChanged(auth,user=>{
+
+    // assina os snapshots de livros/banners uma única vez (leitura é pública)
+    function startListeners(){
+      if(listenersReady)return;listenersReady=true;
+      const qy=query(colRef,orderBy("createdAt","desc"));
+      onSnapshot(qy,snap=>{
+        BOOKS=snap.docs.map(d=>{
+          const data=d.data();
+          const t=data.createdAt?.toMillis?data.createdAt.toMillis():Date.now();
+          return {id:d.id,...data,_t:t};
+        });
+        $("loadingState").classList.add("hide");
+        App.render();
+      },err=>{
+        console.error(err);
+        $("loadingState").classList.add("hide");
+        toast("Erro ao ler os dados. Confira as regras do Firestore.","bad");
+      });
+      onSnapshot(query(bannerRef,orderBy("ordem","asc")),snap=>{
+        BANNERS=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.ativo!==false);
+        App.renderAds();
+        App.render();
+      },err=>console.warn("banners:",err));
+    }
+
+    onAuthStateChanged(auth,async user=>{
       if(user){
-        uid=user.uid;
+        currentUser=user;uid=user.uid;isAnon=user.isAnonymous;
         trackAccess(uid);
-        loadProfile(uid);
-        const qy=query(colRef,orderBy("createdAt","desc"));
-        onSnapshot(qy,snap=>{
-          BOOKS=snap.docs.map(d=>{
-            const data=d.data();
-            const t=data.createdAt?.toMillis?data.createdAt.toMillis():Date.now();
-            return {id:d.id,...data,_t:t};
-          });
-          $("loadingState").classList.add("hide");
-          App.render();
-        },err=>{
+        if(!isAnon){await loadProfile(uid);}
+        else{USER_PROFILE=null;FAVS=new Set();}
+        App.updateRegBtn();
+        startListeners();
+        App.render();
+      }else{
+        // sem sessão → entra anonimamente para navegar e contabilizar acessos
+        currentUser=null;USER_PROFILE=null;FAVS=new Set();
+        try{await signInAnonymously(auth);}
+        catch(err){
           console.error(err);
           $("loadingState").classList.add("hide");
-          toast("Erro ao ler os dados. Confira as regras do Firestore.","bad");
-        });
-        // banners ativos (publicidade)
-        onSnapshot(query(bannerRef,orderBy("ordem","asc")),snap=>{
-          BANNERS=snap.docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.ativo!==false);
-          App.renderAds();
-          App.render();
-        },err=>console.warn("banners:",err));
+          toast("Ative o login Anônimo no Firebase (Authentication).","bad");
+        }
       }
     });
+
+    // sessão inicial anônima (navegação aberta)
     signInAnonymously(auth).catch(err=>{
       console.error(err);
       $("loadingState").classList.add("hide");
