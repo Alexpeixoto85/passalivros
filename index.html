@@ -1816,9 +1816,11 @@ const App={
     if(/^[\w.-]+\.[a-z]{2,}([\/?#].*)?$/i.test(v)) return "https://"+v; // domínio sem https
     return v;
   },
-  // Mensagem padrão do clique no banner, baseada no assunto do próprio banner
-  // (título, ou chamada/sobreposição como alternativa).
+  // Mensagem do clique no banner: usa a mensagem personalizada do banner;
+  // se não houver, gera uma automática com o assunto (título/chamada/sobreposição).
   adMessage(a){
+    const custom=String(a.mensagem||"").trim();
+    if(custom) return custom;
     const assunto=String(a.titulo||a.overlayTitulo||a.descricao||a.overlaySub||"").trim();
     return assunto
       ? `Olá! Vi o anúncio "${assunto}" no PassaLivro e tenho interesse. Pode me passar mais informações?`
