@@ -433,11 +433,22 @@
     position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;
     width:58px;height:58px;border-radius:50%;background:rgba(20,40,37,.62);
     display:grid;place-items:center;color:#fff;box-shadow:0 6px 22px rgba(0,0,0,.35);
-    transition:transform .15s,background .15s;pointer-events:none
+    transition:transform .15s,background .15s,opacity .2s;pointer-events:none
   }
   .ad-play svg{width:26px;height:26px;margin-left:3px}
   .ad-slide:hover .ad-play,.ad-card:hover .ad-play{transform:translate(-50%,-50%) scale(1.07);background:var(--ink)}
   .ad-play.sm{width:46px;height:46px}.ad-play.sm svg{width:21px;height:21px}
+
+  /* Banner de vídeo: reprodução embutida (hover no desktop / toque no celular),
+     sem abrir modal — a tela cheia só acontece se o usuário clicar no ícone do player */
+  .ad-video-slide{cursor:pointer}
+  .ad-video-slide .ad-media-wrap{position:absolute;inset:0}
+  .ad-video-slide .ad-media-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+  .ad-video-slide .ad-inline-frame{position:absolute;inset:0;z-index:1;opacity:0;transition:opacity .25s ease}
+  .ad-video-slide .ad-inline-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+  .ad-video-slide.is-playing .ad-inline-frame{opacity:1}
+  .ad-video-slide.is-playing .ad-media-wrap{opacity:0}
+  .ad-video-slide.is-playing .ad-play{opacity:0;pointer-events:none}
 
   /* ---------- modal de vídeo (YouTube no próprio portal) ---------- */
   .vidmodal{position:fixed;inset:0;z-index:120;background:rgba(8,18,16,.94);
@@ -1907,10 +1918,11 @@ const App={
       const media=bg
         ? `<img src="${bg}" alt="${escapeHtml(a.titulo||'Vídeo')}" loading="lazy">`
         : `<div class="at">${escapeHtml(a.titulo||'Assista ao vídeo')}</div>`;
-      return `<a class="${cls}" data-idx="${idx}" data-video="1" data-vid="${vid}" data-vtitle="${escapeHtml(a.titulo||'')}" href="#" role="button"
-                onclick="App.openVideo('${vid}','${jsAttr(a.titulo||'')}');return false;">
-                ${media}${this.adScrimHTML(a)}${this.adOverlayHTML(a)}
-                <span class="ad-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></a>`;
+      return `<div class="${cls} ad-video-slide" data-idx="${idx}" data-video="1" data-vid="${vid}" data-vtitle="${escapeHtml(a.titulo||'')}" role="button" tabindex="0" aria-label="${escapeHtml(a.titulo||'Vídeo')}">
+                <div class="ad-media-wrap">${media}</div>
+                <div class="ad-inline-frame"></div>
+                ${this.adScrimHTML(a)}${this.adOverlayHTML(a)}
+                <span class="ad-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></div>`;
     }
     const inner=a.imagem
       ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Publicidade')}" loading="lazy">${this.adScrimHTML(a)}${this.adOverlayHTML(a)}`
@@ -1946,15 +1958,20 @@ const App={
       : "";
     slotEl.innerHTML = `<div class="ad-carousel">${slides}${dots}</div>`;
 
+    const carousel = slotEl.querySelector(".ad-carousel");
+
+    // ativa a reprodução embutida (hover no desktop / toque no celular) em cada slide de vídeo
+    carousel.querySelectorAll(".ad-video-slide").forEach(el => this.bindVideoSlide(el, carousel));
+
     if(list.length <= 1) return; // sem carrossel necessário
 
-    const carousel = slotEl.querySelector(".ad-carousel");
     let cur = 0;
     const reduced = matchMedia("(prefers-reduced-motion:reduce)").matches;
 
     function goTo(n){
       const slides = carousel.querySelectorAll(".ad-slide");
       const dots   = carousel.querySelectorAll(".ad-dots button");
+      slides[cur]._stopVideo?.();          // interrompe qualquer vídeo tocando no slide que está saindo
       slides[cur].classList.remove("active");
       dots[cur]?.classList.remove("on");
       cur = (n + list.length) % list.length;
@@ -1973,28 +1990,76 @@ const App={
       if(e.target.closest(".ad-dots")) return;        // bolinhas têm tratamento próprio
       const active = carousel.querySelector(".ad-slide.active");
       if(!active) return;
+      // banner de vídeo: o próprio slide cuida do clique/hover (reprodução embutida) — não intercepta aqui
+      if(active.dataset.video === "1") return;
       e.preventDefault();
       e.stopPropagation();
-      if(active.dataset.video === "1"){
-        App.openVideo(active.dataset.vid, active.dataset.vtitle || "");
-      }else{
-        const href = active.getAttribute("href");
-        if(href && href !== "#") window.open(href, "_blank", "noopener");
-      }
+      const href = active.getAttribute("href");
+      if(href && href !== "#") window.open(href, "_blank", "noopener");
     }, true);
+
+    // pausa o avanço automático enquanto algum vídeo do carrossel está tocando
+    let timer=null;
+    function scheduleNext(){
+      if(reduced) return;
+      const a = list[cur];
+      const secs = (a.tempoBanner && a.tempoBanner > 0) ? Math.max(3, a.tempoBanner) : 6;
+      timer = setTimeout(()=>{ goTo(cur+1); scheduleNext(); }, secs * 1000);
+    }
+    function pauseAuto(){ if(timer){ clearTimeout(timer); timer=null; } }
+    function resumeAuto(){ if(!reduced && !timer) scheduleNext(); }
+    carousel.addEventListener("ad-video-play", pauseAuto);
+    carousel.addEventListener("ad-video-stop", resumeAuto);
 
     // auto-avanço com intervalo baseado em bannerInterval (padrão 6 s)
     if(!reduced){
-      // usa o prazo de cada banner para definir o tempo no slide (campo tempoBanner em segundos, padrão 6)
-      function scheduleNext(){
-        const a = list[cur];
-        const secs = (a.tempoBanner && a.tempoBanner > 0) ? Math.max(3, a.tempoBanner) : 6;
-        return setTimeout(()=>{ goTo(cur+1); scheduleNext._timer = scheduleNext(); }, secs * 1000);
-      }
-      scheduleNext._timer = scheduleNext();
+      scheduleNext();
       // guarda referência no elemento para limpar ao re-renderizar
-      slotEl._cleanupTimer = ()=>clearTimeout(scheduleNext._timer);
+      slotEl._cleanupTimer = ()=>{ if(timer) clearTimeout(timer); };
     }
+  },
+
+  /* Liga a reprodução embutida de um slide de vídeo do banner:
+     - Desktop (mouse com hover): ao passar o ponteiro, o vídeo toca automaticamente
+       (mudo, por exigência dos navegadores) dentro do próprio banner — não abre nenhuma tela.
+       Ao tirar o mouse, o vídeo para e volta a exibir a capa.
+     - Celular/toque: o vídeo só toca quando o usuário toca no banner (com som, pois é um
+       gesto do próprio usuário). O player do YouTube já mostra seus próprios controles,
+       inclusive o botão de tela cheia, para quem quiser expandir o vídeo. */
+  bindVideoSlide(el, carousel){
+    const vid = el.dataset.vid;
+    if(!vid) return;
+    const frameWrap = el.querySelector(".ad-inline-frame");
+    const canHover = matchMedia("(hover:hover) and (pointer:fine)").matches;
+    let playing = false;
+
+    const play = (muted) => {
+      if(playing) return;
+      playing = true;
+      el.classList.add("is-playing");
+      const params = `autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&loop=1&playlist=${vid}${muted?'&mute=1':''}`;
+      frameWrap.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${vid}?${params}" title="${escapeHtml(el.dataset.vtitle||'Vídeo')}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+      carousel?.dispatchEvent(new CustomEvent("ad-video-play"));
+    };
+    const stop = () => {
+      if(!playing) return;
+      playing = false;
+      el.classList.remove("is-playing");
+      frameWrap.innerHTML = "";
+      carousel?.dispatchEvent(new CustomEvent("ad-video-stop"));
+    };
+    el._stopVideo = stop; // permite que o carrossel interrompa o vídeo ao trocar de slide
+
+    if(canHover){
+      el.addEventListener("mouseenter", () => play(true));
+      el.addEventListener("mouseleave", stop);
+    }else{
+      el.addEventListener("click", e => { e.preventDefault(); play(false); });
+    }
+    // acessibilidade via teclado (foco no slide)
+    el.addEventListener("keydown", e => {
+      if(e.key==="Enter" || e.key===" "){ e.preventDefault(); play(canHover); }
+    });
   },
 
   renderAds(){
