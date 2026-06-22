@@ -396,7 +396,12 @@
     display:block;text-decoration:none;position:absolute;inset:0;
     overflow:hidden;opacity:0;transition:opacity .55s ease;pointer-events:none;
   }
-  .ad-slide.active{opacity:1;pointer-events:auto}
+  .ad-slide.active{opacity:1;pointer-events:auto;z-index:2}
+  /* slide inativo (e tudo dentro dele, inclusive a imagem) não recebe clique:
+     evita que o banner empilhado por cima capture o toque do banner visível */
+  .ad-slide:not(.active){z-index:1}
+  .ad-slide:not(.active),.ad-slide:not(.active) *{pointer-events:none}
+  .ad-slide.active img{pointer-events:auto}
   .ad-slide img{width:100%;height:100%;object-fit:cover;display:block}
   .ad-slide.no-img{
     display:flex;align-items:center;justify-content:center;flex-direction:column;
