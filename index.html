@@ -1144,7 +1144,8 @@ const firebaseConfig = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged,
          createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
-         EmailAuthProvider, linkWithCredential, sendPasswordResetEmail }
+         EmailAuthProvider, linkWithCredential, sendPasswordResetEmail,
+         setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
          onSnapshot, query, orderBy, serverTimestamp, getDoc, setDoc,
@@ -1452,11 +1453,17 @@ const App={
       this.render();
       if(cb)setTimeout(cb,200);
     }catch(err){
-      const m={"auth/email-already-in-use":"Já existe uma conta com esse e-mail. Toque em \"Já tenho conta\".",
-        "auth/credential-already-in-use":"Esse e-mail já tem conta. Toque em \"Já tenho conta\".",
-        "auth/wrong-password":"Esse e-mail já tem conta, mas a senha não confere. Use \"Esqueci minha senha\".",
-        "auth/invalid-credential":"Esse e-mail já tem conta, mas a senha não confere. Use \"Esqueci minha senha\".",
-        "auth/weak-password":"A senha deve ter ao menos 6 caracteres.",
+      // E-mail já tem conta -> em vez de travar, leva a pessoa para o login
+      // (caso comum de quem já se cadastrou em outro aparelho).
+      if(["auth/email-already-in-use","auth/credential-already-in-use","auth/wrong-password","auth/invalid-credential"].includes(err.code)){
+        this.authShow("login");
+        $("loginWhats").value=email;
+        localStorage.setItem("pl_email",email);
+        setTimeout(()=>$("loginSenha").focus(),60);
+        this.authError("Esse e-mail já tem uma conta. Digite a senha para entrar — ou use \"Esqueci minha senha\".");
+        return;
+      }
+      const m={"auth/weak-password":"A senha deve ter ao menos 6 caracteres.",
         "auth/invalid-email":"O e-mail informado não é válido.",
         "auth/operation-not-allowed":"Ative o provedor E-mail/senha no Firebase (Authentication)."}[err.code];
       this.authError(m||("Não foi possível criar a conta: "+(err.code||err.message)));
@@ -2234,6 +2241,8 @@ if(!isConfigured){
   try{
     const app=initializeApp(firebaseConfig);
     auth=getAuth(app);db=getFirestore(app);colRef=collection(db,"livros");bannerRef=collection(db,"banners");
+    // Mantém a sessão salva neste aparelho (login continua valendo ao fechar/reabrir).
+    try{await setPersistence(auth,browserLocalPersistence);}catch(e){console.warn("persistence:",e);}
     usuariosRef=collection(db,"usuarios");acessosRef=collection(db,"acessos");configRef=doc(db,"config","geral");
 
     onSnapshot(configRef,snap=>{
