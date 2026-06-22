@@ -1799,35 +1799,44 @@ const App={
   /* ----- publicidade ----- */
   adClickAttrs(){return 'target="_blank" rel="noopener sponsored"';},
   // Normaliza o link do banner: se for um número de WhatsApp (ex.: 82900000000),
-  // gera https://wa.me/55... já com a mensagem padrão. Vale também para banners
-  // antigos salvos só com o número.
+  // gera https://wa.me/55... Vale também para banners antigos salvos só com o número.
+  // (A mensagem do WhatsApp é montada em adHref, conforme o assunto do banner.)
   normalizeLink(raw){
-    const MSG="Quero divulgar meu negócio no banner.";
     let v=String(raw||"").trim();
     if(!v) return "";
-    let url="";
-    if(/^https?:\/\//i.test(v)) url=v;                               // já é URL completa
-    else if(/^(wa\.me|api\.whatsapp\.com)/i.test(v)) url="https://"+v; // wa.me sem https
-    else {
-      const dig=v.replace(/[^\d]/g,"");                             // só dígitos
-      if(/^\d{10,13}$/.test(dig)){                                  // telefone BR
-        let num=dig;
-        const temCodigoPais=/^55/.test(num)&&(num.length===12||num.length===13);
-        if(!temCodigoPais&&(num.length===10||num.length===11)) num="55"+num;
-        url="https://wa.me/"+num;
-      } else if(/^[\w.-]+\.[a-z]{2,}([\/?#].*)?$/i.test(v)){
-        url="https://"+v;                                           // domínio sem https
-      } else {
-        url=v;
-      }
+    if(/^https?:\/\//i.test(v)) return v;                           // já é URL completa
+    if(/^(wa\.me|api\.whatsapp\.com)/i.test(v)) return "https://"+v; // wa.me sem https
+    const dig=v.replace(/[^\d]/g,"");                               // só dígitos
+    if(/^\d{10,13}$/.test(dig)){                                    // telefone BR
+      let num=dig;
+      const temCodigoPais=/^55/.test(num)&&(num.length===12||num.length===13);
+      if(!temCodigoPais&&(num.length===10||num.length===11)) num="55"+num;
+      return "https://wa.me/"+num;
     }
-    // mensagem padrão só para links de WhatsApp (e só se ainda não houver texto)
-    if(/(?:wa\.me|api\.whatsapp\.com)/i.test(url) && !/[?&]text=/i.test(url)){
-      url+=(url.includes("?")?"&":"?")+"text="+encodeURIComponent(MSG);
-    }
-    return url;
+    if(/^[\w.-]+\.[a-z]{2,}([\/?#].*)?$/i.test(v)) return "https://"+v; // domínio sem https
+    return v;
   },
-  adHref(a){const url=this.normalizeLink(a.link);return url?`href="${escapeHtml(url)}"`:'href="#" onclick="return false"';},
+  // Mensagem padrão do clique no banner, baseada no assunto do próprio banner
+  // (título, ou chamada/sobreposição como alternativa).
+  adMessage(a){
+    const assunto=String(a.titulo||a.overlayTitulo||a.descricao||a.overlaySub||"").trim();
+    return assunto
+      ? `Olá! Vi o anúncio "${assunto}" no PassaLivro e tenho interesse. Pode me passar mais informações?`
+      : "Olá! Vi este anúncio no PassaLivro e tenho interesse. Pode me passar mais informações?";
+  },
+  adHref(a){
+    let url=this.normalizeLink(a.link);
+    // Para links de WhatsApp, injeta a mensagem conforme o assunto do banner
+    // (substitui qualquer mensagem genérica que tenha sido salva no link).
+    if(url && /(?:wa\.me|api\.whatsapp\.com)/i.test(url)){
+      const i=url.indexOf("?");
+      const base=i>=0?url.slice(0,i):url;
+      const keep=(i>=0?url.slice(i+1):"").split("&").filter(p=>p&&!/^text=/i.test(p));
+      keep.push("text="+encodeURIComponent(this.adMessage(a)));
+      url=base+"?"+keep.join("&");
+    }
+    return url?`href="${escapeHtml(url)}"`:'href="#" onclick="return false"';
+  },
 
   /* Verifica prazo individual do banner (campo validoAte = timestamp Firestore ou ISO string) */
   adValido(a){
