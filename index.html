@@ -1907,7 +1907,7 @@ const App={
       const media=bg
         ? `<img src="${bg}" alt="${escapeHtml(a.titulo||'Vídeo')}" loading="lazy">`
         : `<div class="at">${escapeHtml(a.titulo||'Assista ao vídeo')}</div>`;
-      return `<a class="${cls}" data-idx="${idx}" href="#" role="button"
+      return `<a class="${cls}" data-idx="${idx}" data-video="1" data-vid="${vid}" data-vtitle="${escapeHtml(a.titulo||'')}" href="#" role="button"
                 onclick="App.openVideo('${vid}','${jsAttr(a.titulo||'')}');return false;">
                 ${media}${this.adScrimHTML(a)}${this.adOverlayHTML(a)}
                 <span class="ad-play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span></a>`;
@@ -1915,7 +1915,7 @@ const App={
     const inner=a.imagem
       ? `<img src="${a.imagem}" alt="${escapeHtml(a.titulo||'Publicidade')}" loading="lazy">${this.adScrimHTML(a)}${this.adOverlayHTML(a)}`
       : `<div class="at">${escapeHtml(a.titulo||'Seu anúncio aqui')}</div>${a.descricao?`<div class="ad-cta">${escapeHtml(a.descricao)}</div>`:''}`;
-    return `<a class="${cls}" data-idx="${idx}" ${this.adHref(a)} ${this.adClickAttrs()}>${inner}</a>`;
+    return `<a class="${cls}" data-idx="${idx}" data-link="1" ${this.adHref(a)} ${this.adClickAttrs()}>${inner}</a>`;
   },
 
   adCardHTML(a){
@@ -1966,6 +1966,22 @@ const App={
     carousel.querySelectorAll(".ad-dots button").forEach(btn=>{
       btn.addEventListener("click", e => { e.preventDefault(); goTo(+btn.dataset.di); });
     });
+
+    // GARANTIA: qualquer clique no carrossel age sempre no banner VISÍVEL (ativo),
+    // nunca num banner empilhado por baixo nem no que está saindo durante o fade.
+    carousel.addEventListener("click", e => {
+      if(e.target.closest(".ad-dots")) return;        // bolinhas têm tratamento próprio
+      const active = carousel.querySelector(".ad-slide.active");
+      if(!active) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if(active.dataset.video === "1"){
+        App.openVideo(active.dataset.vid, active.dataset.vtitle || "");
+      }else{
+        const href = active.getAttribute("href");
+        if(href && href !== "#") window.open(href, "_blank", "noopener");
+      }
+    }, true);
 
     // auto-avanço com intervalo baseado em bannerInterval (padrão 6 s)
     if(!reduced){
