@@ -1791,7 +1791,24 @@ const App={
 
   /* ----- publicidade ----- */
   adClickAttrs(){return 'target="_blank" rel="noopener sponsored"';},
-  adHref(a){return a.link?`href="${escapeHtml(a.link)}"`:'href="#" onclick="return false"';},
+  // Normaliza o link do banner: se for um número de WhatsApp (ex.: 82900000000),
+  // gera https://wa.me/55... Vale também para banners antigos salvos só com o número.
+  normalizeLink(raw){
+    let v=String(raw||"").trim();
+    if(!v) return "";
+    if(/^https?:\/\//i.test(v)) return v;                        // já é URL completa
+    if(/^(wa\.me|api\.whatsapp\.com)/i.test(v)) return "https://"+v; // wa.me sem https
+    const dig=v.replace(/[^\d]/g,"");                            // só dígitos
+    if(/^\d{10,13}$/.test(dig)){                                 // telefone BR
+      let num=dig;
+      const temCodigoPais=/^55/.test(num)&&(num.length===12||num.length===13);
+      if(!temCodigoPais&&(num.length===10||num.length===11)) num="55"+num;
+      return "https://wa.me/"+num;
+    }
+    if(/^[\w.-]+\.[a-z]{2,}([\/?#].*)?$/i.test(v)) return "https://"+v; // domínio sem https
+    return v;
+  },
+  adHref(a){const url=this.normalizeLink(a.link);return url?`href="${escapeHtml(url)}"`:'href="#" onclick="return false"';},
 
   /* Verifica prazo individual do banner (campo validoAte = timestamp Firestore ou ISO string) */
   adValido(a){
