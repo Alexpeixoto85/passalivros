@@ -175,14 +175,6 @@
   .badge.doacao{background:var(--doa);color:#fff}
   .badge.status-fim{left:auto;right:11px;background:var(--ink);color:#fff}
   .badge.status-exp{left:auto;right:11px;background:var(--danger-soft);color:var(--danger)}
-  .badge.status-pend{left:auto;right:11px;background:var(--marigold);color:#fff}
-  .badge.status-rep{left:auto;right:11px;background:var(--danger);color:#fff}
-  /* aviso de moderação no card do próprio anunciante */
-  .mod-note{margin:0 16px 12px;border-radius:10px;padding:9px 11px;font-size:12.5px;font-weight:600;line-height:1.35;display:flex;gap:8px;align-items:flex-start}
-  .mod-note svg{width:15px;height:15px;flex:none;margin-top:1px}
-  .mod-note.pend{background:var(--marigold-soft);color:#92611a;border:1px solid #ecd3a4}
-  .mod-note.rep{background:var(--danger-soft);color:var(--danger);border:1px solid #ecc6ba}
-  .mod-note .reason{display:block;font-weight:500;margin-top:2px}
   .photocount{position:absolute;bottom:11px;right:11px;background:rgba(20,40,37,.7);color:#fff;
     font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:5px}
   .photocount svg{width:13px;height:13px}
@@ -457,10 +449,6 @@
   .ad-video-slide.is-playing .ad-inline-frame{opacity:1}
   .ad-video-slide.is-playing .ad-media-wrap{opacity:0}
   .ad-video-slide.is-playing .ad-play{opacity:0;pointer-events:none}
-  /* com o vídeo em execução, o texto sobreposto e o escurecimento somem */
-  .ad-video-slide.is-playing .ad-overlay,
-  .ad-video-slide.is-playing .ad-scrim{opacity:0;transition:opacity .25s ease}
-  .ad-overlay{transition:opacity .25s ease}
 
   /* ---------- modal de vídeo (YouTube no próprio portal) ---------- */
   .vidmodal{position:fixed;inset:0;z-index:120;background:rgba(8,18,16,.94);
@@ -629,8 +617,8 @@
     </a>
     <div class="nav-actions">
       <span class="cloud-dot" id="cloudDot" title="Conectado à nuvem" aria-label="Conectado à nuvem"><i></i></span>
-      <a class="btn btn-ghost" href="portal-marketplace.html" title="Ir para o Marketplace de produtos e serviços">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      <a class="btn btn-ghost" href="https://alexpeixoto85.github.io/marketplace/" target="_blank" rel="noopener" title="Ir para o Marketplace">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-6 9 6v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span class="lbl">Marketplace</span>
       </a>
       <button class="btn btn-ghost" id="regBtn" onclick="App.openRegister()">
@@ -1246,7 +1234,7 @@ function isExpired(b){
   return dias>CONFIG.prazoDias;
 }
 function activeCount(ownerUid){
-  return BOOKS.filter(b=>b.ownerId===ownerUid&&b.status!=="finalizado"&&b.status!=="reprovado").length;
+  return BOOKS.filter(b=>b.ownerId===ownerUid&&b.status!=="finalizado").length;
 }
 /* registra 1 acesso por usuário por dia (vale para qualquer visitante) */
 async function trackAccess(uidVal){
@@ -1699,18 +1687,11 @@ const App={
     $("saveBtn").disabled=true;$("saveBtn").textContent="Salvando…";
     try{
       if(editingId){
-        const cur=BOOKS.find(x=>x.id===editingId);
-        const reenvio=(cur && cur.status==="reprovado");
-        const extra=reenvio
-          ? {status:"pendente",motivoReprovacao:null,reprovadoEm:null,reenviadoEm:serverTimestamp()}
-          : {};
-        await updateDoc(doc(db,"livros",editingId),{...data,...extra});
-        toast(reenvio
-          ? "Anúncio corrigido e reenviado. Ele volta ao ar assim que for aprovado."
-          : "Anúncio atualizado.","ok");
+        await updateDoc(doc(db,"livros",editingId),data);
+        toast("Anúncio atualizado.","ok");
       }else{
-        await addDoc(colRef,{...data,status:"pendente",negocioFechado:null,finalizadoEm:null,createdAt:serverTimestamp()});
-        toast("Recebemos seu anúncio! Ele ficará no ar após a análise da nossa equipe.","ok");
+        await addDoc(colRef,{...data,status:"ativo",negocioFechado:null,finalizadoEm:null,createdAt:serverTimestamp()});
+        toast("Anúncio publicado! Já está visível para as famílias.","ok");
       }
       this.closeForm();
     }catch(err){
@@ -1779,16 +1760,13 @@ const App={
     const fT=$("fTipo").value,fE=$("fEstado").value,sort=$("fSort").value;
     let list=BOOKS.filter(b=>{
       const cat=b.categoria||"escolar";
-      const mine=b.ownerId===uid;
-      // anúncios em análise ou reprovados só aparecem para o próprio anunciante
-      if(!mine && (b.status==="pendente"||b.status==="reprovado")) return false;
       if(showFavs){
         if(!FAVS.has(b.id))return false;   // mostra favoritos em qualquer status
       }else if(showMine){
-        if(!mine)return false;
+        if(b.ownerId!==uid)return false;
       }else{
-        if(!mine&&b.status==="finalizado")return false;
-        if(!mine&&isExpired(b))return false;
+        if(b.ownerId!==uid&&b.status==="finalizado")return false;
+        if(b.ownerId!==uid&&isExpired(b))return false;
       }
       if(fC&&cat!==fC)return false;
       if(fD&&b.disciplina!==fD)return false;
@@ -1813,8 +1791,8 @@ const App={
     const anyFilter=$("q").value||$("fCategoria").value||$("fDisc").value||$("fSerie").value||$("fGenero").value||$("fTipo").value||$("fEstado").value;
     $("clearF").classList.toggle("show",!!anyFilter||$("fSort").value!=="recent");
 
-    // stats (sobre os livros disponíveis — sem contar finalizados/expirados/em análise/reprovados)
-    const disponiveis=BOOKS.filter(b=>b.status!=="finalizado"&&b.status!=="pendente"&&b.status!=="reprovado"&&!isExpired(b));
+    // stats (sobre os livros disponíveis — sem contar finalizados/expirados)
+    const disponiveis=BOOKS.filter(b=>b.status!=="finalizado"&&!isExpired(b));
     $("statBooks").textContent=disponiveis.length;
     $("statTroca").textContent=disponiveis.filter(b=>b.tipo==="troca").length;
     $("statDoa").textContent=disponiveis.filter(b=>b.tipo==="doacao").length;
@@ -1934,7 +1912,7 @@ const App={
       ? `<div style="font-size:${size}px;color:${color};font-weight:${fw};font-style:${fs};line-height:1.2;${shadow}">${escapeHtml(a.overlayTitulo)}</div>` : "";
     const subHTML=a.overlaySub
       ? `<div style="font-size:${subSize}px;color:${subColor};font-weight:${fwSub};font-style:${fs};margin-top:4px;${shadow}">${escapeHtml(a.overlaySub)}</div>` : "";
-    return `<div class="ad-overlay" style="position:absolute;z-index:2;max-width:75%;line-height:1.25;pointer-events:none;word-break:break-word;font-family:'${font}',sans-serif;${posStyle}">${titleHTML}${subHTML}</div>`;
+    return `<div style="position:absolute;z-index:2;max-width:75%;line-height:1.25;pointer-events:none;word-break:break-word;font-family:'${font}',sans-serif;${posStyle}">${titleHTML}${subHTML}</div>`;
   },
   adSlideHTML(a, idx, total){
     const bg=this.adMediaBg(a);
@@ -2004,9 +1982,6 @@ const App={
       slides[cur].classList.add("active");
       dots[cur]?.classList.add("on");
     }
-
-    // expõe o avanço para que os banners de vídeo "pulem para o próximo" ao serem clicados de novo
-    carousel._advance = ()=>{ pauseAuto(); goTo(cur+1); scheduleNext(); };
 
     // clique nas bolinhas
     carousel.querySelectorAll(".ad-dots button").forEach(btn=>{
@@ -2079,32 +2054,15 @@ const App={
     };
     el._stopVideo = stop; // permite que o carrossel interrompa o vídeo ao trocar de slide
 
-    // "quando eu clicar novamente deve pular para o próximo banner"
-    const advanceOrStop = () => {
-      stop();
-      if(carousel && typeof carousel._advance === "function") carousel._advance();
-    };
-
     if(canHover){
-      // desktop: passar o mouse já reproduz (mudo); clicar com o vídeo rodando pula para o próximo banner
       el.addEventListener("mouseenter", () => play(true));
       el.addEventListener("mouseleave", stop);
-      el.addEventListener("click", e => { e.preventDefault(); advanceOrStop(); });
     }else{
-      // celular: 1º toque reproduz (com som); tocar de novo pula para o próximo banner
-      el.addEventListener("click", e => {
-        e.preventDefault();
-        if(!playing) play(false);
-        else advanceOrStop();
-      });
+      el.addEventListener("click", e => { e.preventDefault(); play(false); });
     }
     // acessibilidade via teclado (foco no slide)
     el.addEventListener("keydown", e => {
-      if(e.key==="Enter" || e.key===" "){
-        e.preventDefault();
-        if(!playing) play(canHover);
-        else advanceOrStop();
-      }
+      if(e.key==="Enter" || e.key===" "){ e.preventDefault(); play(canHover); }
     });
   },
 
@@ -2161,35 +2119,22 @@ const App={
         : `<div class="price doacao">Doação</div>`;
     const mine=b.ownerId===uid;
     const finalizado=b.status==="finalizado";
-    const pendente=b.status==="pendente";
-    const reprovado=b.status==="reprovado";
     const expirado=isExpired(b);
-    const encerrado=finalizado||expirado||pendente||reprovado;
+    const encerrado=finalizado||expirado;
     const statusBadge=finalizado
       ? `<span class="badge status-fim" style="top:auto;bottom:11px;left:11px;right:auto">${b.negocioFechado?"Negócio fechado":"Concluído"}</span>`
-      : pendente?`<span class="badge status-pend" style="top:auto;bottom:11px;left:11px;right:auto">Em análise</span>`
-      : reprovado?`<span class="badge status-rep" style="top:auto;bottom:11px;left:11px;right:auto">Não aprovado</span>`
       : expirado?`<span class="badge status-exp" style="top:auto;bottom:11px;left:11px;right:auto">Expirado</span>`:"";
-    const modNote=(mine&&pendente)
-      ? `<div class="mod-note pend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div>Seu anúncio está <b>em análise</b> e ficará no ar assim que for aprovado.</div></div>`
-      : (mine&&reprovado)
-      ? `<div class="mod-note rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg><div>Seu anúncio <b>não foi aprovado</b>.${b.motivoReprovacao?`<span class="reason">Motivo: ${escapeHtml(b.motivoReprovacao)}</span>`:""}<span class="reason">Edite e reenvie para nova análise.</span></div></div>`
-      : "";
     const favBtn=`<button class="fav-btn${this.isFav(b.id)?' on':''}" data-id="${b.id}" onclick="App.toggleFav('${b.id}',event)" aria-label="Favoritar" title="Favoritar">
         <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
       </button>`;
-    const encLabel=pendente?"Em análise":reprovado?"Não aprovado":"Anúncio encerrado";
     const footHTML=encerrado
-      ? `<div class="mini" style="flex:1;justify-content:center;background:var(--surface-2);color:var(--ink-soft);cursor:default">${encLabel}</div>`
+      ? `<div class="mini" style="flex:1;justify-content:center;background:var(--surface-2);color:var(--ink-soft);cursor:default">Anúncio encerrado</div>`
       : `<a class="wa-btn" href="${waLink(b)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.8-2-.9-.3-.1-.5-.2-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.3s1 2.7 1.1 2.9c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
           WhatsApp
         </a>`;
     const ownerActions=finalizado
       ? `<button class="mini" onclick="App.reabrir('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 16v-4h4"/></svg>Reabrir</button>
-         <button class="mini del" onclick="App.removeBook('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>Excluir</button>`
-      : (pendente||reprovado)
-      ? `<button class="mini edit" onclick="App.editFromCard('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>${reprovado?"Editar e reenviar":"Editar"}</button>
          <button class="mini del" onclick="App.removeBook('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>Excluir</button>`
       : `<button class="mini edit" onclick="App.editFromCard('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Editar</button>
          <button class="mini fim" onclick="App.openFinish('${b.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>Concluir</button>
@@ -2216,7 +2161,6 @@ const App={
         ${mine?`<div class="owner-row" onclick="event.stopPropagation()"><div class="owner-actions">
             ${ownerActions}
           </div></div>`:""}
-        ${modNote}
         <div class="card-foot">
           ${priceHTML}
           ${footHTML}
@@ -2305,26 +2249,17 @@ const App={
     ).join("")}</div>`;
     const mine=b.ownerId===uid;
     const finalizado=b.status==="finalizado";
-    const pendente=b.status==="pendente";
-    const reprovado=b.status==="reprovado";
     const expirado=isExpired(b);
-    const encerrado=finalizado||expirado||pendente||reprovado;
+    const encerrado=finalizado||expirado;
     const statusLine=finalizado
       ? `<div class="help-txt" style="background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 14px;font-weight:600;color:var(--ink)">
           ${b.negocioFechado?"✅ Negócio fechado através do PassaLivro":"Anúncio concluído — sem negócio fechado"}
         </div>`
-      : pendente?`<div class="help-txt" style="background:var(--marigold-soft);border:1px solid #ecd3a4;border-radius:10px;padding:10px 12px;margin:0 0 14px;font-weight:600;color:#92611a">
-          ⏳ Anúncio em análise — ficará no ar assim que for aprovado pela nossa equipe.
-        </div>`
-      : reprovado?`<div class="help-txt" style="background:var(--danger-soft);border:1px solid #ecc6ba;border-radius:10px;padding:10px 12px;margin:0 0 14px;font-weight:600;color:var(--danger)">
-          Anúncio não aprovado.${b.motivoReprovacao?`<div style="font-weight:500;margin-top:3px">Motivo: ${escapeHtml(b.motivoReprovacao)}</div>`:""}
-        </div>`
       : expirado?`<div class="help-txt" style="background:var(--danger-soft);border:1px solid var(--danger-soft);border-radius:10px;padding:10px 12px;margin:0 0 14px;font-weight:600;color:var(--danger)">
           Prazo de exibição deste anúncio expirou
         </div>`:"";
-    const encMsg=pendente?"Anúncio em análise — ainda fora de exibição":reprovado?"Anúncio não aprovado — fora de exibição":"Anúncio encerrado — fora de exibição";
     const waBlock=encerrado
-      ? `<div class="btn detail-wa" style="width:100%;justify-content:center;background:var(--surface-2);color:var(--ink-soft);box-shadow:none;border:1px solid var(--line)">${encMsg}</div>`
+      ? `<div class="btn detail-wa" style="width:100%;justify-content:center;background:var(--surface-2);color:var(--ink-soft);box-shadow:none;border:1px solid var(--line)">Anúncio encerrado — fora de exibição</div>`
       : `<a class="btn wa-btn detail-wa" href="${waLink(b)}" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/><path d="M17.5 14.4c-.3-.2-1.7-.8-2-.9-.3-.1-.5-.2-.6.2-.2.3-.7.9-.8 1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.3s1 2.7 1.1 2.9c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3z"/></svg>
         Falar com ${escapeHtml((b.nome||"o anunciante").split(" ")[0])} no WhatsApp
@@ -2332,11 +2267,6 @@ const App={
     const ownerBlock=mine?(finalizado
       ? `<div style="display:flex;gap:10px;margin-top:12px">
           <button class="btn btn-ghost" style="flex:1" onclick="App.reabrir('${b.id}');App.closeDetail();">Reabrir anúncio</button>
-          <button class="btn btn-ghost" style="flex:1;color:var(--danger);border-color:var(--danger-soft)" onclick="App.removeBook('${b.id}')">Excluir</button>
-        </div>`
-      : (pendente||reprovado)
-      ? `<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-          <button class="btn btn-primary" style="flex:1" onclick="App.openDetailEdit()">${reprovado?"Editar e reenviar":"Editar anúncio"}</button>
           <button class="btn btn-ghost" style="flex:1;color:var(--danger);border-color:var(--danger-soft)" onclick="App.removeBook('${b.id}')">Excluir</button>
         </div>`
       : `<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
@@ -2350,8 +2280,6 @@ const App={
         <div class="detail-badges">
           <span class="badge ${b.tipo}" style="position:static">${tipoLabel(b.tipo)}</span>
           ${finalizado?`<span class="badge status-fim" style="position:static">${b.negocioFechado?"Negócio fechado":"Concluído"}</span>`:""}
-          ${pendente?`<span class="badge status-pend" style="position:static">Em análise</span>`:""}
-          ${reprovado?`<span class="badge status-rep" style="position:static">Não aprovado</span>`:""}
           ${expirado?`<span class="badge status-exp" style="position:static">Expirado</span>`:""}
         </div>
         <h2>${escapeHtml(b.titulo)}</h2>
