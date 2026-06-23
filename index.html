@@ -1908,11 +1908,41 @@ const App={
     const fs=a.overlayItalic?"italic":"normal";
     const shadow=a.overlayShadow!==false?"text-shadow:1px 2px 8px rgba(0,0,0,.7),0 0 20px rgba(0,0,0,.4)":"";
     const posStyle=this.overlayPosStyle(a.overlayPos||"mid-center");
+    // O tamanho configurado (size/subSize, em px) é usado como ponto de partida e também
+    // como teto máximo. data-fit-max guarda esse teto para o ajuste fino via JS
+    // (fitAllOverlays), que reduz o font-size até o texto caber em uma única linha,
+    // qualquer que seja a largura real do banner — sem isso o texto quebraria feio no celular.
     const titleHTML=a.overlayTitulo
-      ? `<div style="font-size:${size}px;color:${color};font-weight:${fw};font-style:${fs};line-height:1.2;${shadow}">${escapeHtml(a.overlayTitulo)}</div>` : "";
+      ? `<div class="ad-ov-line" data-fit-max="${size}" style="font-size:${size}px;color:${color};font-weight:${fw};font-style:${fs};line-height:1.2;white-space:nowrap;${shadow}">${escapeHtml(a.overlayTitulo)}</div>` : "";
     const subHTML=a.overlaySub
-      ? `<div style="font-size:${subSize}px;color:${subColor};font-weight:${fwSub};font-style:${fs};margin-top:4px;${shadow}">${escapeHtml(a.overlaySub)}</div>` : "";
-    return `<div style="position:absolute;z-index:2;max-width:75%;line-height:1.25;pointer-events:none;word-break:break-word;font-family:'${font}',sans-serif;${posStyle}">${titleHTML}${subHTML}</div>`;
+      ? `<div class="ad-ov-line" data-fit-max="${subSize}" style="font-size:${subSize}px;color:${subColor};font-weight:${fwSub};font-style:${fs};margin-top:4px;white-space:nowrap;${shadow}">${escapeHtml(a.overlaySub)}</div>` : "";
+    return `<div class="ad-overlay" style="position:absolute;z-index:2;max-width:88%;line-height:1.25;pointer-events:none;font-family:'${font}',sans-serif;${posStyle}">${titleHTML}${subHTML}</div>`;
+  },
+  /* Reduz o font-size de uma linha de overlay até ela caber, em uma única linha,
+     dentro da largura disponível do banner. Cresce de volta ao tamanho configurado
+     (data-fit-max) sempre que há espaço (ex.: usuário girou a tela, banner maior). */
+  fitOverlayLine(el, availableWidth){
+    const max=parseFloat(el.dataset.fitMax)||28;
+    let size=max;
+    el.style.fontSize=size+"px";
+    // reduz em passos pequenos até caber (raramente passa de poucas iterações)
+    let guard=40;
+    while(el.scrollWidth>availableWidth && size>8 && guard-->0){
+      size-=Math.max(1,size*0.06);
+      el.style.fontSize=size.toFixed(1)+"px";
+    }
+  },
+  fitOverlayText(overlayEl){
+    const slot=overlayEl.closest(".ad-slot");
+    if(!slot) return;
+    // espaço disponível = 88% da largura do slot (mesmo limite do max-width do overlay),
+    // com uma margem de segurança extra para não colar nas bordas
+    const available=slot.clientWidth*0.88 - 8;
+    overlayEl.querySelectorAll(".ad-ov-line").forEach(line=>this.fitOverlayLine(line, available));
+  },
+  fitAllOverlays(scope){
+    const root=scope||document;
+    root.querySelectorAll(".ad-overlay").forEach(ov=>this.fitOverlayText(ov));
   },
   adSlideHTML(a, idx, total){
     const bg=this.adMediaBg(a);
@@ -1966,6 +1996,10 @@ const App={
 
     // ativa a reprodução embutida (hover no desktop / toque no celular) em cada slide de vídeo
     carousel.querySelectorAll(".ad-video-slide").forEach(el => this.bindVideoSlide(el, carousel));
+
+    // ajusta o tamanho do texto de cada overlay para caber em uma única linha,
+    // qualquer que seja a largura real do banner (evita quebra feia no celular)
+    this.fitAllOverlays(carousel);
 
     if(list.length <= 1) return; // sem carrossel necessário
 
@@ -2323,6 +2357,14 @@ $("formScrim").addEventListener("click",e=>{if(e.target===$("formScrim"))App.clo
 $("detailScrim").addEventListener("click",e=>{if(e.target===$("detailScrim"))App.closeDetail();});
 $("finishScrim").addEventListener("click",e=>{if(e.target===$("finishScrim"))App.closeFinish();});
 $("regScrim").addEventListener("click",e=>{if(e.target===$("regScrim"))App.closeRegister();});
+
+/* reajusta o texto dos banners ao redimensionar a janela/girar o celular,
+   para o overlay continuar cabendo em uma única linha */
+let _resizeAdsTimer=null;
+window.addEventListener("resize",()=>{
+  clearTimeout(_resizeAdsTimer);
+  _resizeAdsTimer=setTimeout(()=>App.fitAllOverlays(),120);
+});
 
 /* ============================================================
    Boot
